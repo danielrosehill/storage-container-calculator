@@ -414,6 +414,10 @@ addCustomRow();
 document.getElementById("stackHeight").addEventListener("change", recalc);
 document.getElementById("palletType").addEventListener("change", recalc);
 document.getElementById("pdfBtn").addEventListener("click", () => window.print());
+// hide the print button inside the Android app WebView, where window.print() is a no-op
+if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+  document.getElementById("pdfBtn").style.display = "none";
+}
 
 // ---- read inputs ----
 function readBoxes() {
