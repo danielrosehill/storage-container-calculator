@@ -5,6 +5,9 @@ A single-page calculator for turning Eurobox (Euronorm stacking container) quant
 - **Total volume** in m³ and litres (external dimensions)
 - **Euro pallet loads** (EUR-1 or EUR-6 half pallet) at a selectable max stack height, with per-layer layout diagrams
 - **20 ft container (TEU) utilisation** by volume and by pallet floor positions
+- **A4 PDF report** via the "Save as PDF" button (browser print-to-PDF, print stylesheet)
+
+Box sizes are grouped by footprint in collapsible sections; each height variant has an illustrated tile (box icon with height arrow) and a quantity field.
 
 **Live:** https://danielrosehill.github.io/eurobox-calculator/
 
