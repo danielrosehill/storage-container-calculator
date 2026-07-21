@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eurobox Logistics Calculator</title>
+<meta name="description" content="Calculate storage volume, Euro pallet loads, and 20ft container (TEU) utilisation from Eurobox quantities.">
+<style>
+  :root {
+    color-scheme: light;
+    --surface-1: #fcfcfb;
+    --page: #f9f9f7;
+    --text-primary: #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted: #898781;
+    --grid: #e1e0d9;
+    --baseline: #c3c2b7;
+    --border: rgba(11, 11, 11, 0.10);
+    --accent: #2a78d6;
+    --accent-track: #cde2fb;
+    --accent-deep: #1c5cab;
+    --critical: #d03b3b;
+    --good-text: #006300;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --surface-1: #1a1a19;
+      --page: #0d0d0d;
+      --text-primary: #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted: #898781;
+      --grid: #2c2c2a;
+      --baseline: #383835;
+      --border: rgba(255, 255, 255, 0.10);
+      --accent: #3987e5;
+      --accent-track: #184f95;
+      --accent-deep: #86b6ef;
+      --critical: #e66767;
+      --good-text: #0ca30c;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--page);
+    color: var(--text-primary);
+    line-height: 1.5;
+    padding: 24px 16px 64px;
+  }
+  main { max-width: 880px; margin: 0 auto; }
+  h1 { font-size: 1.5rem; margin-bottom: 4px; }
+  .subtitle { color: var(--text-secondary); margin-bottom: 24px; font-size: 0.95rem; }
+  .card {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  .card h2 { font-size: 1.05rem; margin-bottom: 12px; }
+  /* ---- box rows ---- */
+  .box-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--grid);
+  }
+  .box-row:last-of-type { border-bottom: none; }
+  select, input[type="number"] {
+    font: inherit;
+    padding: 7px 10px;
+    border: 1px solid var(--baseline);
+    border-radius: 6px;
+    background: var(--surface-1);
+    color: var(--text-primary);
+  }
+  select { min-width: 230px; }
+  input[type="number"] { width: 90px; }
+  .custom-dims { display: none; gap: 6px; align-items: center; }
+  .custom-dims.visible { display: flex; }
+  .custom-dims input { width: 70px; }
+  .custom-dims span { color: var(--text-muted); font-size: 0.85rem; }
+  button {
+    font: inherit;
+    padding: 7px 14px;
+    border: 1px solid var(--baseline);
+    border-radius: 6px;
+    background: var(--surface-1);
+    color: var(--text-primary);
+    cursor: pointer;
+  }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.remove {
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    padding: 4px 8px;
+  }
+  button.remove:hover { color: var(--critical); }
+  .row-label { font-size: 0.85rem; color: var(--text-muted); }
+  .add-row-wrap { margin-top: 12px; }
+  /* ---- settings ---- */
+  .settings { display: flex; gap: 24px; flex-wrap: wrap; }
+  .setting label { display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 4px; }
+  /* ---- stat tiles ---- */
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .tile {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .tile .label { font-size: 0.8rem; color: var(--text-secondary); }
+  .tile .value { font-size: 1.7rem; font-weight: 600; }
+  .tile .sub { font-size: 0.8rem; color: var(--text-muted); }
+  /* ---- meter ---- */
+  .meter-wrap { margin-top: 6px; }
+  .meter-label-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+  }
+  .meter {
+    height: 18px;
+    border-radius: 9px;
+    background: var(--accent-track);
+    overflow: hidden;
+    position: relative;
+  }
+  .meter .fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 9px 0 0 9px;
+    transition: width 0.25s ease;
+  }
+  .meter .fill.over { background: var(--critical); }
+  .meter-note { font-size: 0.85rem; color: var(--text-secondary); margin-top: 6px; }
+  .meter-note strong { color: var(--text-primary); }
+  /* ---- pallet table ---- */
+  table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  th {
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--baseline);
+    padding: 6px 8px;
+  }
+  td { padding: 6px 8px; border-bottom: 1px solid var(--grid); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tr.total td { font-weight: 600; border-bottom: none; }
+  /* ---- pallet diagrams ---- */
+  .diagrams { display: flex; gap: 20px; flex-wrap: wrap; }
+  .diagram { text-align: center; }
+  .diagram .cap { font-size: 0.8rem; color: var(--text-secondary); margin-top: 6px; max-width: 200px; }
+  .diagram svg { display: block; }
+  .empty-note { color: var(--text-muted); font-size: 0.9rem; }
+  footer {
+    max-width: 880px;
+    margin: 32px auto 0;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+  footer p { margin-bottom: 4px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Eurobox Logistics Calculator</h1>
+  <p class="subtitle">Volume, Euro pallet loads, and 20&thinsp;ft container utilisation from stacking-container quantities.</p>
+
+  <section class="card">
+    <h2>Your boxes</h2>
+    <div id="rows"></div>
+    <div class="add-row-wrap">
+      <button id="addRow" class="primary" type="button">+ Add box type</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Pallet settings</h2>
+    <div class="settings">
+      <div class="setting">
+        <label for="stackHeight">Max stack height (incl. pallet)</label>
+        <select id="stackHeight">
+          <option value="1200">1.20 m &mdash; low / half stack</option>
+          <option value="1500">1.50 m</option>
+          <option value="1800" selected>1.80 m &mdash; standard warehouse</option>
+          <option value="2000">2.00 m</option>
+          <option value="2200">2.20 m &mdash; container max</option>
+        </select>
+      </div>
+      <div class="setting">
+        <label for="palletType">Pallet</label>
+        <select id="palletType">
+          <option value="eur1" selected>EUR&#8209;1 (1200 &times; 800 mm)</option>
+          <option value="eur6">EUR&#8209;6 half pallet (800 &times; 600 mm)</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <div class="tiles" id="tiles"></div>
+
+  <section class="card">
+    <h2>20&thinsp;ft container (TEU) utilisation</h2>
+    <div class="meter-wrap">
+      <div class="meter-label-row"><span>By volume</span><span id="meterVolPct">0%</span></div>
+      <div class="meter"><div class="fill" id="meterVolFill" style="width:0%"></div></div>
+    </div>
+    <div class="meter-wrap" style="margin-top:14px">
+      <div class="meter-label-row"><span>By pallet footprint</span><span id="meterPalPct">0%</span></div>
+      <div class="meter"><div class="fill" id="meterPalFill" style="width:0%"></div></div>
+    </div>
+    <p class="meter-note" id="meterNote"></p>
+  </section>
+
+  <section class="card">
+    <h2>Pallet breakdown</h2>
+    <div id="palletTable"><p class="empty-note">Add boxes above to see the breakdown.</p></div>
+  </section>
+
+  <section class="card">
+    <h2>Pallet layer layout</h2>
+    <div class="diagrams" id="diagrams"><p class="empty-note">Top-down view of one layer per box type will appear here.</p></div>
+  </section>
+
+  <footer>
+    <p>Assumptions: external box dimensions; single-SKU pallets (no mixing box types on one pallet); no overhang; EUR&#8209;1 pallet height 144&nbsp;mm; 20&thinsp;ft container internal volume 33.2&nbsp;m&sup3; holding 11 EUR&#8209;1 pallets on the floor.</p>
+    <p>Pallet counts are conservative estimates for planning, not a packing optimiser.</p>
+  </footer>
+</main>
+
+<script>
+"use strict";
+
+// ---- reference data (all dimensions in mm, external) ----
+const BOX_SIZES = [
+  // 600 x 400 footprint — the classic Eurobox / Euronorm footprint
+  { id: "600x400x120", L: 600, W: 400, H: 120 },
+  { id: "600x400x170", L: 600, W: 400, H: 170 },
+  { id: "600x400x175", L: 600, W: 400, H: 175 },
+  { id: "600x400x220", L: 600, W: 400, H: 220 },
+  { id: "600x400x230", L: 600, W: 400, H: 230 },
+  { id: "600x400x270", L: 600, W: 400, H: 270 },
+  { id: "600x400x310", L: 600, W: 400, H: 310 },
+  { id: "600x400x320", L: 600, W: 400, H: 320 },
+  { id: "600x400x420", L: 600, W: 400, H: 420 },
+  // 400 x 300 half footprint
+  { id: "400x300x120", L: 400, W: 300, H: 120 },
+  { id: "400x300x170", L: 400, W: 300, H: 170 },
+  { id: "400x300x220", L: 400, W: 300, H: 220 },
+  { id: "400x300x270", L: 400, W: 300, H: 270 },
+  { id: "400x300x320", L: 400, W: 300, H: 320 },
+  // 300 x 200 quarter footprint
+  { id: "300x200x120", L: 300, W: 200, H: 120 },
+  { id: "300x200x170", L: 300, W: 200, H: 170 },
+  { id: "300x200x220", L: 300, W: 200, H: 220 },
+  // 800 x 600 double footprint
+  { id: "800x600x220", L: 800, W: 600, H: 220 },
+  { id: "800x600x320", L: 800, W: 600, H: 320 },
+  { id: "800x600x420", L: 800, W: 600, H: 420 },
+];
+
+const PALLETS = {
+  eur1: { name: "EUR-1", L: 1200, W: 800, deckH: 144, perTeuFloor: 11 },
+  eur6: { name: "EUR-6", L: 800, W: 600, deckH: 144, perTeuFloor: 22 },
+};
+
+const TEU_VOLUME_M3 = 33.2; // 20ft container internal volume
+
+function sizeLabel(s) {
+  return `${s.L / 10} × ${s.W / 10} × ${s.H / 10} cm  (${(s.L * s.W * s.H / 1e9).toFixed(3)} m³)`;
+}
+
+// ---- row management ----
+const rowsEl = document.getElementById("rows");
+let rowSeq = 0;
+
+function addRow(presetId) {
+  const row = document.createElement("div");
+  row.className = "box-row";
+  row.dataset.rowId = ++rowSeq;
+
+  const select = document.createElement("select");
+  select.setAttribute("aria-label", "Box size");
+  let currentGroup = null;
+  let groupEl = null;
+  for (const s of BOX_SIZES) {
+    const footprint = `${s.L / 10} × ${s.W / 10} cm footprint`;
+    if (footprint !== currentGroup) {
+      currentGroup = footprint;
+      groupEl = document.createElement("optgroup");
+      groupEl.label = footprint;
+      select.appendChild(groupEl);
+    }
+    const opt = document.createElement("option");
+    opt.value = s.id;
+    opt.textContent = sizeLabel(s);
+    groupEl.appendChild(opt);
+  }
+  const customOpt = document.createElement("option");
+  customOpt.value = "custom";
+  customOpt.textContent = "Custom dimensions…";
+  select.appendChild(customOpt);
+  if (presetId) select.value = presetId;
+
+  const customDims = document.createElement("div");
+  customDims.className = "custom-dims";
+  customDims.innerHTML =
+    '<input type="number" class="cL" placeholder="L" min="1" aria-label="Length cm"> <span>×</span>' +
+    '<input type="number" class="cW" placeholder="W" min="1" aria-label="Width cm"> <span>×</span>' +
+    '<input type="number" class="cH" placeholder="H" min="1" aria-label="Height cm"> <span>cm</span>';
+
+  const qtyLabel = document.createElement("span");
+  qtyLabel.className = "row-label";
+  qtyLabel.textContent = "Qty";
+
+  const qty = document.createElement("input");
+  qty.type = "number";
+  qty.min = "0";
+  qty.value = "0";
+  qty.setAttribute("aria-label", "Quantity");
+
+  const remove = document.createElement("button");
+  remove.className = "remove";
+  remove.type = "button";
+  remove.title = "Remove row";
+  remove.textContent = "✕";
+  remove.addEventListener("click", () => { row.remove(); recalc(); });
+
+  select.addEventListener("change", () => {
+    customDims.classList.toggle("visible", select.value === "custom");
+    recalc();
+  });
+  [qty, ...customDims.querySelectorAll("input")].forEach(el =>
+    el.addEventListener("input", recalc));
+
+  row.append(select, customDims, qtyLabel, qty, remove);
+  rowsEl.appendChild(row);
+}
+
+document.getElementById("addRow").addEventListener("click", () => addRow());
+document.getElementById("stackHeight").addEventListener("change", recalc);
+document.getElementById("palletType").addEventListener("change", recalc);
+
+// ---- calculation ----
+function readRows() {
+  const out = [];
+  for (const row of rowsEl.querySelectorAll(".box-row")) {
+    const select = row.querySelector("select");
+    const qty = parseInt(row.querySelector('input[aria-label="Quantity"]').value, 10) || 0;
+    if (qty <= 0) continue;
+    let L, W, H, name;
+    if (select.value === "custom") {
+      L = (parseFloat(row.querySelector(".cL").value) || 0) * 10;
+      W = (parseFloat(row.querySelector(".cW").value) || 0) * 10;
+      H = (parseFloat(row.querySelector(".cH").value) || 0) * 10;
+      if (L <= 0 || W <= 0 || H <= 0) continue;
+      name = `Custom ${L / 10} × ${W / 10} × ${H / 10} cm`;
+    } else {
+      const s = BOX_SIZES.find(b => b.id === select.value);
+      ({ L, W, H } = s);
+      name = `${L / 10} × ${W / 10} × ${H / 10} cm`;
+    }
+    out.push({ name, L, W, H, qty });
+  }
+  return out;
+}
+
+// best grid orientation of box (L×W) on pallet (PL×PW), no overhang
+function bestLayer(box, pallet) {
+  const a = { nx: Math.floor(pallet.L / box.L), ny: Math.floor(pallet.W / box.W), rot: false };
+  const b = { nx: Math.floor(pallet.L / box.W), ny: Math.floor(pallet.W / box.L), rot: true };
+  a.count = a.nx * a.ny;
+  b.count = b.nx * b.ny;
+  return b.count > a.count ? b : a;
+}
+
+function compute() {
+  const boxes = readRows();
+  const stackH = parseInt(document.getElementById("stackHeight").value, 10);
+  const pallet = PALLETS[document.getElementById("palletType").value];
+
+  let totalBoxes = 0, totalVolume = 0, totalPallets = 0;
+  const perType = boxes.map(box => {
+    const vol = box.L * box.W * box.H * box.qty / 1e9;
+    const layer = bestLayer(box, pallet);
+    const layers = Math.max(0, Math.floor((stackH - pallet.deckH) / box.H));
+    const perPallet = layer.count * layers;
+    const pallets = perPallet > 0 ? Math.ceil(box.qty / perPallet) : null;
+    totalBoxes += box.qty;
+    totalVolume += vol;
+    if (pallets !== null) totalPallets += pallets;
+    return { ...box, vol, layer, layers, perPallet, pallets };
+  });
+
+  return {
+    boxes: perType, pallet, stackH,
+    totalBoxes, totalVolume, totalPallets,
+    teuByVolume: totalVolume / TEU_VOLUME_M3,
+    teuByPallets: totalPallets / pallet.perTeuFloor,
+  };
+}
+
+// ---- rendering ----
+const fmt = new Intl.NumberFormat("en-US");
+const fmtVol = v => v >= 10 ? v.toFixed(1) : v.toFixed(2);
+
+function renderTiles(r) {
+  const tiles = [
+    { label: "Total boxes", value: fmt.format(r.totalBoxes), sub: "" },
+    { label: "Total volume", value: `${fmtVol(r.totalVolume)} m³`, sub: `${fmt.format(Math.round(r.totalVolume * 1000))} litres` },
+    { label: `${r.pallet.name} pallets`, value: fmt.format(r.totalPallets), sub: `stacked to ${(r.stackH / 1000).toFixed(2)} m` },
+    { label: "20 ft equivalent", value: `${(r.teuByVolume * 100).toFixed(1)}%`, sub: "of one TEU by volume" },
+  ];
+  document.getElementById("tiles").innerHTML = tiles.map(t =>
+    `<div class="tile"><div class="label">${t.label}</div><div class="value">${t.value}</div>` +
+    (t.sub ? `<div class="sub">${t.sub}</div>` : "") + `</div>`
+  ).join("");
+}
+
+function renderMeters(r) {
+  const volPct = r.teuByVolume * 100;
+  const palPct = r.teuByPallets * 100;
+
+  const setMeter = (fillId, pctId, pct) => {
+    const fill = document.getElementById(fillId);
+    fill.style.width = Math.min(100, pct) + "%";
+    fill.classList.toggle("over", pct > 100);
+    document.getElementById(pctId).textContent = pct.toFixed(1) + "%";
+  };
+  setMeter("meterVolFill", "meterVolPct", volPct);
+  setMeter("meterPalFill", "meterPalPct", palPct);
+
+  const note = document.getElementById("meterNote");
+  if (r.totalBoxes === 0) {
+    note.textContent = "";
+  } else {
+    const containers = Math.max(Math.ceil(r.teuByVolume), Math.ceil(r.teuByPallets)) || 0;
+    const worst = Math.max(volPct, palPct);
+    note.innerHTML = worst <= 100
+      ? `Fits in <strong>one 20 ft container</strong> with ${(100 - worst).toFixed(0)}% headroom on the tighter measure.`
+      : `Needs <strong>${containers} × 20 ft containers</strong> (${(r.teuByVolume).toFixed(2)} TEU by volume, ${r.totalPallets} pallets vs ${r.pallet.perTeuFloor} per container floor).`;
+  }
+}
+
+function renderTable(r) {
+  const host = document.getElementById("palletTable");
+  if (r.boxes.length === 0) {
+    host.innerHTML = '<p class="empty-note">Add boxes above to see the breakdown.</p>';
+    return;
+  }
+  const rows = r.boxes.map(b => {
+    const perPallet = b.perPallet > 0
+      ? `${b.layer.count} / layer × ${b.layers} layers = ${b.perPallet}`
+      : "won't fit at this stack height";
+    return `<tr><td>${b.name}</td><td class="num">${fmt.format(b.qty)}</td>` +
+      `<td class="num">${fmtVol(b.vol)}</td><td>${perPallet}</td>` +
+      `<td class="num">${b.pallets === null ? "—" : fmt.format(b.pallets)}</td></tr>`;
+  }).join("");
+  host.innerHTML =
+    `<table><thead><tr><th>Box</th><th class="num">Qty</th><th class="num">m³</th>` +
+    `<th>Per pallet</th><th class="num">Pallets</th></tr></thead><tbody>${rows}` +
+    `<tr class="total"><td>Total</td><td class="num">${fmt.format(r.totalBoxes)}</td>` +
+    `<td class="num">${fmtVol(r.totalVolume)}</td><td></td>` +
+    `<td class="num">${fmt.format(r.totalPallets)}</td></tr></tbody></table>`;
+}
+
+function palletSvg(box, layer, pallet) {
+  const scale = 0.18; // mm -> px
+  const pw = pallet.L * scale, ph = pallet.W * scale;
+  const pad = 2;
+  const boxL = (layer.rot ? box.W : box.L) * scale;
+  const boxW = (layer.rot ? box.L : box.W) * scale;
+  let rects = "";
+  for (let i = 0; i < layer.nx; i++) {
+    for (let j = 0; j < layer.ny; j++) {
+      rects += `<rect x="${(i * boxL + pad / 2).toFixed(1)}" y="${(j * boxW + pad / 2).toFixed(1)}" ` +
+        `width="${(boxL - pad).toFixed(1)}" height="${(boxW - pad).toFixed(1)}" rx="2" fill="var(--accent)">` +
+        `<title>${box.name} — position ${i * layer.ny + j + 1} of ${layer.count}</title></rect>`;
+    }
+  }
+  return `<svg width="${pw.toFixed(0)}" height="${ph.toFixed(0)}" viewBox="0 0 ${pw.toFixed(1)} ${ph.toFixed(1)}" role="img" aria-label="One pallet layer of ${box.name}: ${layer.count} boxes">` +
+    `<rect x="0" y="0" width="${pw.toFixed(1)}" height="${ph.toFixed(1)}" rx="3" fill="none" stroke="var(--baseline)" stroke-width="1.5"/>` +
+    rects + `</svg>`;
+}
+
+function renderDiagrams(r) {
+  const host = document.getElementById("diagrams");
+  const withLayout = r.boxes.filter(b => b.layer.count > 0);
+  if (withLayout.length === 0) {
+    host.innerHTML = '<p class="empty-note">Top-down view of one layer per box type will appear here.</p>';
+    return;
+  }
+  host.innerHTML = withLayout.map(b =>
+    `<div class="diagram">${palletSvg(b, b.layer, r.pallet)}` +
+    `<div class="cap"><strong>${b.name}</strong><br>${b.layer.count} per layer · ${b.layers} layers · ${b.perPallet} per pallet</div></div>`
+  ).join("");
+}
+
+function recalc() {
+  const r = compute();
+  renderTiles(r);
+  renderMeters(r);
+  renderTable(r);
+  renderDiagrams(r);
+}
+
+// start with one sensible default row
+addRow("600x400x310");
+recalc();
+</script>
+</body>
+</html>
