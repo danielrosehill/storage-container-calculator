@@ -2,9 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Eurobox Logistics Calculator</title>
 <meta name="description" content="Calculate storage volume, Euro pallet loads, and 20ft container (TEU) utilisation from Eurobox quantities.">
+<meta name="theme-color" content="#f9f9f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d0d0d" media="(prefers-color-scheme: dark)">
 <style>
   :root {
     color-scheme: light;
@@ -212,6 +214,46 @@
   .diagram .cap { font-size: 0.8rem; color: var(--text-secondary); margin-top: 6px; max-width: 220px; }
   .diagram svg { display: block; }
   .empty-note { color: var(--text-muted); font-size: 0.9rem; }
+  .table-scroll { overflow-x: auto; }
+  /* ---- sticky mobile summary bar ---- */
+  .sticky-bar {
+    display: none;
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    background: var(--surface-1);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.06);
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+    justify-content: space-around;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    z-index: 10;
+  }
+  .sticky-bar .st { text-align: center; min-width: 0; }
+  .sticky-bar .st .l { font-size: 0.7rem; color: var(--text-secondary); white-space: nowrap; }
+  .sticky-bar .st .v { font-size: 1.05rem; font-weight: 600; white-space: nowrap; }
+  /* ---- phone layout ---- */
+  @media (max-width: 600px) {
+    body { padding: 14px 10px 96px; }
+    h1 { font-size: 1.25rem; }
+    .subtitle { margin-bottom: 16px; }
+    .card { padding: 14px; }
+    .size-grid {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      padding: 4px 12px 14px;
+    }
+    .size-tile { padding: 10px 6px 12px; }
+    .size-tile input { width: 100%; max-width: 90px; }
+    details.footprint summary { padding: 13px 14px; }
+    summary .fp-sub { display: none; }
+    .tiles { grid-template-columns: 1fr 1fr; }
+    .tile .value { font-size: 1.4rem; }
+    th, td { padding: 6px 6px; }
+    .sticky-bar.visible { display: flex; }
+    .diagrams { justify-content: center; }
+  }
   footer {
     max-width: 880px;
     margin: 32px auto 0;
@@ -314,7 +356,7 @@
 
   <section class="card">
     <h2>Pallet breakdown</h2>
-    <div id="palletTable"><p class="empty-note">Enter quantities above to see the breakdown.</p></div>
+    <div id="palletTable" class="table-scroll"><p class="empty-note">Enter quantities above to see the breakdown.</p></div>
   </section>
 
   <section class="card">
@@ -327,6 +369,13 @@
     <p>Pallet counts are conservative estimates for planning, not a packing optimiser.</p>
   </footer>
 </main>
+
+<div class="sticky-bar no-print" id="stickyBar" role="status" title="Jump to results">
+  <div class="st"><div class="l">Boxes</div><div class="v" id="sbBoxes">0</div></div>
+  <div class="st"><div class="l">Volume</div><div class="v" id="sbVol">0 m³</div></div>
+  <div class="st"><div class="l">Pallets</div><div class="v" id="sbPallets">0</div></div>
+  <div class="st"><div class="l">20 ft</div><div class="v" id="sbTeu">0%</div></div>
+</div>
 
 <script>
 "use strict";
@@ -399,10 +448,10 @@ function addCustomRow() {
   const row = document.createElement("div");
   row.className = "custom-row";
   row.innerHTML =
-    '<input type="number" class="cL" placeholder="L" min="1" aria-label="Length cm"><span class="x">×</span>' +
-    '<input type="number" class="cW" placeholder="W" min="1" aria-label="Width cm"><span class="x">×</span>' +
-    '<input type="number" class="cH" placeholder="H" min="1" aria-label="Height cm"><span class="x">cm</span>' +
-    '<span class="x" style="margin-left:8px">Qty</span><input type="number" class="cQ" min="0" placeholder="0" aria-label="Quantity">' +
+    '<input type="number" class="cL" placeholder="L" min="1" inputmode="decimal" aria-label="Length cm"><span class="x">×</span>' +
+    '<input type="number" class="cW" placeholder="W" min="1" inputmode="decimal" aria-label="Width cm"><span class="x">×</span>' +
+    '<input type="number" class="cH" placeholder="H" min="1" inputmode="decimal" aria-label="Height cm"><span class="x">cm</span>' +
+    '<span class="x" style="margin-left:8px">Qty</span><input type="number" class="cQ" min="0" placeholder="0" inputmode="numeric" aria-label="Quantity">' +
     '<button class="remove" type="button" title="Remove">✕</button>';
   row.querySelector(".remove").addEventListener("click", () => { row.remove(); recalc(); });
   row.addEventListener("input", recalc);
@@ -581,6 +630,16 @@ function renderDiagrams(r) {
   ).join("");
 }
 
+function renderStickyBar(r) {
+  document.getElementById("stickyBar").classList.toggle("visible", r.totalBoxes > 0);
+  document.getElementById("sbBoxes").textContent = fmt.format(r.totalBoxes);
+  document.getElementById("sbVol").textContent = fmtVol(r.totalVolume) + " m³";
+  document.getElementById("sbPallets").textContent = fmt.format(r.totalPallets);
+  document.getElementById("sbTeu").textContent = (r.teuByVolume * 100).toFixed(0) + "%";
+}
+document.getElementById("stickyBar").addEventListener("click", () =>
+  document.getElementById("tiles").scrollIntoView({ behavior: "smooth" }));
+
 function renderPrintMeta(r) {
   const d = new Date();
   document.getElementById("printMeta").textContent =
@@ -596,6 +655,7 @@ function recalc() {
   renderMeters(r);
   renderTable(r);
   renderDiagrams(r);
+  renderStickyBar(r);
   renderPrintMeta(r);
 }
 
