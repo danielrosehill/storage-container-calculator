@@ -1,5 +1,9 @@
 # Eurobox Logistics Calculator
 
+[![Eurobox Logistics Calculator — box size tiles grouped by footprint](screenshots/app.png)](https://danielrosehill.github.io/eurobox-calculator/)
+
+[![TEU utilisation meters, pallet breakdown, and layer layout](screenshots/results.png)](https://danielrosehill.github.io/eurobox-calculator/)
+
 A single-page calculator for turning Eurobox (Euronorm stacking container) quantities into logistics figures:
 
 - **Total volume** in m³ and litres (external dimensions)
