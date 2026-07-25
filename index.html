@@ -151,6 +151,61 @@
   .custom-wrap { padding: 6px 20px 16px; }
   .custom-wrap .add { margin-top: 8px; }
   .custom-hint { font-size: 0.8rem; color: var(--text-muted); margin-top: 6px; }
+  /* ---- 3D model gallery ---- */
+  .model-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 14px;
+    padding: 6px 20px 16px;
+  }
+  .model-card {
+    border: 1px solid var(--grid);
+    border-radius: 10px;
+    background: var(--surface-1);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .model-stage {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    background: var(--grid);
+  }
+  .model-stage img, .model-stage model-viewer {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+  }
+  .model-stage model-viewer { background: var(--grid); --poster-color: transparent; }
+  .model-stage .view3d {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    font-size: 0.75rem;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+  }
+  .model-body { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 4px; flex: 1; }
+  .model-body .m-name { font-size: 0.88rem; font-weight: 600; line-height: 1.3; }
+  .model-body .m-dims { font-size: 0.8rem; color: var(--text-secondary); }
+  .model-body .m-code { font-size: 0.72rem; color: var(--text-muted); letter-spacing: 0.04em; }
+  .model-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: auto; padding-top: 8px; }
+  .model-actions a, .model-actions button {
+    font-size: 0.78rem;
+    padding: 5px 10px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    background: none;
+    color: var(--accent-deep);
+    text-decoration: none;
+  }
+  .model-actions button:hover, .model-actions a:hover { border-color: var(--accent); }
+  .model-note { font-size: 0.8rem; color: var(--text-muted); padding: 0 20px 16px; }
+  .model-note a { color: var(--accent-deep); }
   /* ---- settings ---- */
   .settings { display: flex; gap: 24px; flex-wrap: wrap; }
   .setting label { display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 4px; }
@@ -316,6 +371,16 @@
     </div>
   </details>
 
+  <details class="footprint no-print" id="modelsSection">
+    <summary>3D models <span class="fp-sub">view, download, or load a size into the calculation</span></summary>
+    <div class="model-grid" id="modelGrid"></div>
+    <p class="model-note">
+      True-scale GLB models of the same storage units, CC&nbsp;BY&nbsp;4.0.
+      <a href="https://blog.danielrosehill.com/resources/3d-models" target="_blank" rel="noopener">All models and downloads</a> &middot;
+      <a href="https://github.com/danielrosehill/storage-box-3d-models" target="_blank" rel="noopener">Source repo</a>
+    </p>
+  </details>
+
   <section class="card no-print" style="margin-top:20px">
     <h2>Pallet settings</h2>
     <div class="settings">
@@ -456,9 +521,117 @@ function addCustomRow() {
   row.querySelector(".remove").addEventListener("click", () => { row.remove(); recalc(); });
   row.addEventListener("input", recalc);
   customRowsEl.appendChild(row);
+  return row;
 }
-document.getElementById("addCustom").addEventListener("click", addCustomRow);
+document.getElementById("addCustom").addEventListener("click", () => addCustomRow());
 addCustomRow();
+
+// ---- 3D models ----
+// The GLBs live on the blog so this file works unchanged from GitHub Pages, from
+// blog.danielrosehill.com and from the Android WebView. blog.danielrosehill.com sends
+// Access-Control-Allow-Origin: * for /models/, which model-viewer needs cross-origin.
+const MODEL_BASE = "https://blog.danielrosehill.com/models/storage-boxes";
+const MODEL_VIEWER_SRC = "https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js";
+
+// L/W are the footprint as the calculator uses it (long side first); H is external height.
+const MODELS = [
+  { file: "eurobox-400x300x150", code: "EU4315", name: "Euro container",       L: 400, W: 300, H: 150, addable: true },
+  { file: "eurobox-600x400x230", code: "EU6423", name: "Euro container",       L: 600, W: 400, H: 230, addable: true },
+  { file: "eurobox-600x400x340", code: "EU6434", name: "Euro container",       L: 600, W: 400, H: 340, addable: true },
+  { file: "alc-600x400x415",     code: "ALC6441", name: "Attached-lid container", L: 600, W: 400, H: 415, addable: true },
+  { file: "picking-bin-1",       code: "PB1",    name: "Picking bin, large",   L: 450, W: 300, H: 210, addable: true },
+  { file: "picking-bin-2",       code: "PB2",    name: "Picking bin, medium",  L: 295, W: 205, H: 160, addable: true },
+  { file: "picking-bin-3",       code: "PB3",    name: "Picking bin, small",   L: 200, W: 145, H: 130, addable: true },
+  { file: "shelving-1600x600x2300", code: "SB1", name: "Shelving bay, 5 levels", L: 1600, W: 600, H: 2300, addable: false },
+];
+
+let modelViewerLoading = null;
+function loadModelViewer() {
+  if (!modelViewerLoading) {
+    modelViewerLoading = new Promise((resolve, reject) => {
+      const s = document.createElement("script");
+      s.type = "module";
+      s.src = MODEL_VIEWER_SRC;
+      s.onload = resolve;
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+  return modelViewerLoading;
+}
+
+// Put one of a model's dimensions into the calculation: use the catalogue tile when the
+// size is one the calculator already lists, otherwise fill a custom row.
+function addModelToCalc(m) {
+  const tile = sectionsEl.querySelector(`.size-tile[data-fp="${m.L}x${m.W}"][data-h="${m.H}"]`);
+  if (tile) {
+    const input = tile.querySelector("input");
+    input.value = (parseInt(input.value, 10) || 0) + 1;
+    tile.closest("details.footprint").open = true;
+    tile.scrollIntoView({ block: "center", behavior: "smooth" });
+  } else {
+    let row = [...customRowsEl.querySelectorAll(".custom-row")]
+      .find(r => !r.querySelector(".cL").value && !r.querySelector(".cW").value && !r.querySelector(".cH").value);
+    if (!row) row = addCustomRow();
+    row.querySelector(".cL").value = m.L / 10;
+    row.querySelector(".cW").value = m.W / 10;
+    row.querySelector(".cH").value = m.H / 10;
+    const q = row.querySelector(".cQ");
+    q.value = (parseInt(q.value, 10) || 0) + 1;
+    document.getElementById("customSection").open = true;
+    row.scrollIntoView({ block: "center", behavior: "smooth" });
+  }
+  recalc();
+}
+
+const modelGridEl = document.getElementById("modelGrid");
+for (const m of MODELS) {
+  const card = document.createElement("div");
+  card.className = "model-card";
+  const dims = `${cm(m.L)} × ${cm(m.W)} × ${cm(m.H)} cm`;
+  card.innerHTML =
+    `<div class="model-stage">` +
+    `<img loading="lazy" src="${MODEL_BASE}/${m.file}.jpg" alt="${m.name} ${dims}">` +
+    `<button class="view3d" type="button">View in 3D</button>` +
+    `</div>` +
+    `<div class="model-body">` +
+    `<div class="m-name">${m.name}</div>` +
+    `<div class="m-dims">${dims}</div>` +
+    `<div class="m-code">${m.code}</div>` +
+    `<div class="model-actions">` +
+    (m.addable ? `<button class="add-model" type="button">+ Add to calculation</button>` : "") +
+    `<a href="${MODEL_BASE}/${m.file}.glb" download>Download GLB</a>` +
+    `</div></div>`;
+
+  card.querySelector(".view3d").addEventListener("click", async (e) => {
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    btn.textContent = "Loading…";
+    try {
+      await loadModelViewer();
+    } catch {
+      btn.disabled = false;
+      btn.textContent = "3D unavailable offline";
+      return;
+    }
+    const mv = document.createElement("model-viewer");
+    mv.setAttribute("src", `${MODEL_BASE}/${m.file}.glb`);
+    mv.setAttribute("poster", `${MODEL_BASE}/${m.file}.jpg`);
+    mv.setAttribute("alt", `3D model of ${m.name} ${dims}`);
+    mv.setAttribute("camera-controls", "");
+    mv.setAttribute("touch-action", "pan-y");
+    mv.setAttribute("auto-rotate", "");
+    mv.setAttribute("shadow-intensity", "1");
+    mv.setAttribute("exposure", "0.9");
+    mv.setAttribute("environment-image", "neutral");
+    card.querySelector(".model-stage").replaceChildren(mv);
+  });
+
+  const addBtn = card.querySelector(".add-model");
+  if (addBtn) addBtn.addEventListener("click", () => addModelToCalc(m));
+
+  modelGridEl.appendChild(card);
+}
 
 document.getElementById("stackHeight").addEventListener("change", recalc);
 document.getElementById("palletType").addEventListener("change", recalc);
