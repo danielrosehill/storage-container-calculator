@@ -111,7 +111,11 @@ The same reference data is published as a machine-readable dataset, extended wit
 the VDA 4500 KLT sizes, standards-conformance fields, and 121 individual vendor
 listings from four markets:
 **[danielrosehill/storage-container-dimensions](https://huggingface.co/datasets/danielrosehill/storage-container-dimensions)**
-on Hugging Face (CC BY 4.0). Every row there also carries `vendor_capacity_low_l`
+on Hugging Face (CC BY 4.0), with an 8-page printable version of the whole
+catalogue — sizes, internal dimensions, capacities and the vendor spread, by family —
+at [`reference/storage-container-reference.pdf`](https://huggingface.co/datasets/danielrosehill/storage-container-dimensions/blob/main/reference/storage-container-reference.pdf).
+
+Every row there also carries `vendor_capacity_low_l`
 and `vendor_capacity_high_l` — the range of capacities implied by each vendor's own
 published internal dimensions, which on a 60 × 40 × 32 box spans 60 to 66 litres.
 This calculator uses the low end.

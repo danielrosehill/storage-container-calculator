@@ -9,6 +9,11 @@ listings, and per-row standards-conformance fields. `build.py` in that repo is t
 generator; if a capacity changes, change it there and mirror it into the `GROUPS`
 array here.
 
+A printable rendering of the whole catalogue — every size, its typical internal
+dimensions, its capacity and the vendor spread, divided by family — is at
+[`reference/storage-container-reference.pdf`](https://huggingface.co/datasets/danielrosehill/storage-container-dimensions/blob/main/reference/storage-container-reference.pdf) in that repo. It is
+generated from the CSVs, so it cannot disagree with them.
+
 The dataset also carries what this file cannot: `vendor_capacity_low_l` and
 `vendor_capacity_high_l` on every row, the range of capacities implied by each
 vendor's *own* published internal dimensions for that size. The catalogue below
