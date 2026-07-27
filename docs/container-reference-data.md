@@ -2,6 +2,12 @@
 
 Provenance for every figure hard-coded in `index.html`. Verified **27 July 2026**.
 
+Published in machine-readable form as
+[danielrosehill/storage-container-dimensions](https://huggingface.co/datasets/danielrosehill/storage-container-dimensions)
+on Hugging Face — same figures plus the VDA 4500 KLT sizes and per-row
+standards-conformance fields. `build.py` in that repo is the generator; if a
+capacity changes, change it there and mirror it into the `GROUPS` array here.
+
 The calculator's whole point is comparing containers on *usable* capacity, so the
 capacity figures matter more than the dimensions. Getting them wrong by 10 % changes
 which box wins a comparison.

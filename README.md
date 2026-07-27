@@ -93,6 +93,11 @@ which numbers are geometrically derived, which are vendor nominal figures, and t
 one known outlier. Catalogue capacities are typical and vary by manufacturer; check
 the supplier's own internal dimensions before committing to a large order.
 
+The same reference data is published as a machine-readable dataset, extended with
+the VDA 4500 KLT sizes and standards-conformance fields:
+**[danielrosehill/storage-container-dimensions](https://huggingface.co/datasets/danielrosehill/storage-container-dimensions)**
+on Hugging Face (CC BY 4.0).
+
 ## 3D models
 
 The "3D models" section renders the GLBs from
