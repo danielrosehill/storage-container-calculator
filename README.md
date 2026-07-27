@@ -31,7 +31,8 @@ figures.
 The metric is deliberately built on **usable** capacity, not external L × W × H.
 Comparing on external volume flatters a tapered ALC against a straight-walled
 Eurobox of the same nominal size, which is exactly the error the tool exists to
-prevent. Worked example, at Israeli retail prices:
+prevent. Worked example (the Eurobox price is a real Israeli retail figure, the ALC
+price is illustrative):
 
 | Basket | Usable | Total | Volume price |
 |---|---|---|---|
