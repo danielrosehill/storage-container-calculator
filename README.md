@@ -37,9 +37,9 @@ price is illustrative):
 | Basket | Usable | Total | Volume price |
 |---|---|---|---|
 | 20 × ALC 60 × 40 × 31 @ ₪150 | 1,120 L | ₪3,000 | **₪2.68 / L** |
-| 60 × Euro 60 × 40 × 34 @ ₪153 | 3,840 L | ₪9,180 | **₪2.39 / L** |
+| 60 × Euro 60 × 40 × 34 @ ₪153 | 3,810 L | ₪9,180 | **₪2.41 / L** |
 
-The Eurobox buys volume 11 % more cheaply. The ALC's case is elsewhere: its price
+The Eurobox buys volume 10 % more cheaply. The ALC's case is elsewhere: its price
 includes a lid, and those 20 boxes collapse to 0.43 m³ when empty against the
 Eurobox's 4.90 m³.
 
@@ -74,14 +74,18 @@ list survives a reload.
 
 ## Catalogue
 
-| Family | Footprints | Heights |
+| Family | Footprints | Heights (mm) |
 |---|---|---|
-| Euro stacking | 600 × 400 | 120, 170, 175, 220, 230, 270, 310, 320, 340, 420 |
-| | 400 × 300 | 120, 170, 220, 270, 320 |
-| | 300 × 200 | 120, 170, 220 |
+| Euro stacking | 600 × 400 | 120, 150, 170, 175, 200, 220, 230, 240, 270, 280, 300, 310, 320, 340, 365, 400, 420, 465 |
+| | 400 × 300 | 120, 150, 170, 200, 220, 230, 240, 270, 320 |
+| | 300 × 200 | 120, 150, 170, 220 |
 | | 800 × 600 | 220, 320, 420 |
 | ALC | 600 × 400 | 250, 310, 367, 400 |
 | | 400 × 300 | 222, 264, 306 |
+
+41 catalogue sizes. The Euro height series is not defined by any standard — unlike
+the three VDA KLT heights, it is whatever manufacturers converged on, so these are
+the sizes observed for sale rather than a specification.
 
 Plus custom dimensions, which pick their capacity estimate from a straight-walled or
 tapered wall style. Custom sizes also appear in the comparison dropdown, so a size
