@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Eurobox Logistics Calculator</title>
-<meta name="description" content="Calculate storage volume, Euro pallet loads, and 20ft container (TEU) utilisation from Eurobox quantities.">
+<title>Industrial Storage Container Calculator</title>
+<meta name="description" content="Compare Euroboxes and attached-lid containers (ALCs) on usable capacity, pallet and container loads, and volume price — what a litre of usable storage costs to buy.">
 <meta name="theme-color" content="#f9f9f7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0d0d0d" media="(prefers-color-scheme: dark)">
 <style>
@@ -22,9 +22,15 @@
     --accent-track: #cde2fb;
     --accent-deep: #1c5cab;
     --critical: #d03b3b;
+    --good: #2f8f5b;
+    --good-track: #cfe9da;
     --box-front: #cde2fb;
     --box-top: #9ec5f4;
     --box-side: #6da7ec;
+    --alc-front: #f6dcc0;
+    --alc-top: #eec191;
+    --alc-side: #d99f5e;
+    --alc-line: #b97e3d;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
@@ -41,9 +47,15 @@
       --accent-track: #184f95;
       --accent-deep: #86b6ef;
       --critical: #e66767;
+      --good: #4fb782;
+      --good-track: #1e5238;
       --box-front: #1c5cab;
       --box-top: #2a78d6;
       --box-side: #184f95;
+      --alc-front: #7a4f1d;
+      --alc-top: #a26a28;
+      --alc-side: #5d3c16;
+      --alc-line: #d99f5e;
     }
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -54,7 +66,7 @@
     line-height: 1.5;
     padding: 24px 16px 64px;
   }
-  main { max-width: 880px; margin: 0 auto; }
+  main { max-width: 920px; margin: 0 auto; }
   .page-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
   h1 { font-size: 1.5rem; margin-bottom: 4px; }
   .subtitle { color: var(--text-secondary); margin-bottom: 24px; font-size: 0.95rem; }
@@ -66,6 +78,7 @@
     margin-bottom: 20px;
   }
   .card h2 { font-size: 1.05rem; margin-bottom: 12px; }
+  .card .card-intro { font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 14px; }
   button {
     font: inherit;
     padding: 8px 16px;
@@ -77,7 +90,7 @@
   }
   button:hover { border-color: var(--accent); }
   button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-  select, input[type="number"] {
+  select, input[type="number"], input[type="text"] {
     font: inherit;
     padding: 7px 10px;
     border: 1px solid var(--baseline);
@@ -85,6 +98,17 @@
     background: var(--surface-1);
     color: var(--text-primary);
   }
+  /* ---- family headings ---- */
+  .family-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 22px 0 10px;
+  }
+  .family-head:first-child { margin-top: 4px; }
+  .family-head h2 { font-size: 1.02rem; }
+  .family-head .fam-sub { font-size: 0.82rem; color: var(--text-muted); }
   /* ---- footprint accordions ---- */
   details.footprint {
     background: var(--surface-1);
@@ -104,7 +128,7 @@
   }
   details.footprint summary::-webkit-details-marker { display: none; }
   details.footprint summary::before {
-    content: "▸";
+    content: "\25B8";
     color: var(--text-muted);
     transition: transform 0.15s ease;
   }
@@ -135,7 +159,8 @@
   }
   .size-tile.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
   .size-tile svg { display: block; margin: 0 auto 4px; }
-  .size-tile .ht-label { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; }
+  .size-tile .ht-label { font-size: 0.9rem; font-weight: 600; }
+  .size-tile .cap-label { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 8px; }
   .size-tile input {
     width: 76px;
     text-align: center;
@@ -145,12 +170,65 @@
   /* custom rows */
   .custom-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 6px 0; }
   .custom-row input { width: 74px; }
+  .custom-row select { padding: 6px 8px; font-size: 0.85rem; }
   .custom-row .x { color: var(--text-muted); }
   .custom-row button.remove { border: none; background: none; color: var(--text-muted); font-size: 1.05rem; padding: 4px 8px; }
   .custom-row button.remove:hover { color: var(--critical); }
   .custom-wrap { padding: 6px 20px 16px; }
   .custom-wrap .add { margin-top: 8px; }
   .custom-hint { font-size: 0.8rem; color: var(--text-muted); margin-top: 6px; }
+  /* ---- purchase comparison ---- */
+  .cmp-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 8px 0;
+    border-bottom: 1px dashed var(--grid);
+  }
+  .cmp-row:last-of-type { border-bottom: none; }
+  .cmp-row .cmp-pick { flex: 1 1 240px; min-width: 180px; }
+  .cmp-row input.cmp-qty { width: 84px; }
+  .cmp-row input.cmp-price { width: 96px; }
+  .cmp-row .lab { font-size: 0.8rem; color: var(--text-muted); }
+  .cmp-row button.remove { border: none; background: none; color: var(--text-muted); font-size: 1.05rem; padding: 4px 8px; margin-left: auto; }
+  .cmp-row button.remove:hover { color: var(--critical); }
+  .cmp-toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+  .cmp-toolbar .spacer { flex: 1; }
+  tr.best td { background: var(--good-track); print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  #cmpOut td:first-child { white-space: nowrap; }
+  td .badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #fff;
+    background: var(--good);
+    border-radius: 999px;
+    padding: 1px 8px;
+    margin-left: 6px;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .verdict {
+    margin-top: 14px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    background: var(--accent-track);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .verdict strong { font-weight: 700; }
+  .verdict.empty { background: none; padding: 0; color: var(--text-muted); }
+  /* comparison bars */
+  .bars { margin-top: 18px; }
+  .bars h3 { font-size: 0.85rem; color: var(--text-secondary); font-weight: 600; margin: 14px 0 8px; }
+  .bar-row { display: grid; grid-template-columns: minmax(90px, 190px) 1fr auto; gap: 10px; align-items: center; margin-bottom: 6px; font-size: 0.82rem; }
+  .bar-row .bl { color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar-track { background: var(--accent-track); border-radius: 6px; height: 14px; overflow: hidden; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .bar-track .bf { height: 100%; background: var(--accent); border-radius: 6px 0 0 6px; }
+  .bar-track .bf.win { background: var(--good); }
+  .bar-row .bv { font-variant-numeric: tabular-nums; color: var(--text-primary); font-weight: 600; }
   /* ---- 3D model gallery ---- */
   .model-grid {
     display: grid;
@@ -251,7 +329,7 @@
   .meter .fill.over { background: var(--critical); }
   .meter-note { font-size: 0.85rem; color: var(--text-secondary); margin-top: 6px; }
   .meter-note strong { color: var(--text-primary); }
-  /* ---- pallet table ---- */
+  /* ---- tables ---- */
   table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
   th {
     text-align: left;
@@ -259,9 +337,11 @@
     color: var(--text-secondary);
     border-bottom: 1px solid var(--baseline);
     padding: 6px 8px;
+    white-space: nowrap;
   }
   td { padding: 6px 8px; border-bottom: 1px solid var(--grid); }
   td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  th .th-unit { font-weight: 400; font-size: 0.76rem; color: var(--text-muted); }
   tr.total td { font-weight: 600; border-bottom: none; }
   /* ---- pallet diagrams ---- */
   .diagrams { display: flex; gap: 20px; flex-wrap: wrap; }
@@ -301,6 +381,7 @@
     }
     .size-tile { padding: 10px 6px 12px; }
     .size-tile input { width: 100%; max-width: 90px; }
+    .size-tile .cap-label { font-size: 0.68rem; }
     details.footprint summary { padding: 13px 14px; }
     summary .fp-sub { display: none; }
     .tiles { grid-template-columns: 1fr 1fr; }
@@ -308,9 +389,11 @@
     th, td { padding: 6px 6px; }
     .sticky-bar.visible { display: flex; }
     .diagrams { justify-content: center; }
+    .cmp-row .cmp-pick { flex-basis: 100%; }
+    .bar-row { grid-template-columns: minmax(70px, 110px) 1fr auto; }
   }
   footer {
-    max-width: 880px;
+    max-width: 920px;
     margin: 32px auto 0;
     font-size: 0.8rem;
     color: var(--text-muted);
@@ -326,7 +409,7 @@
       --text-primary: #0b0b0b; --text-secondary: #52514e; --text-muted: #898781;
       --grid: #e1e0d9; --baseline: #c3c2b7; --border: #d5d4cd;
       --accent: #2a78d6; --accent-track: #cde2fb; --accent-deep: #1c5cab;
-      --critical: #d03b3b;
+      --critical: #d03b3b; --good: #2f8f5b; --good-track: #cfe9da;
       --box-front: #cde2fb; --box-top: #9ec5f4; --box-side: #6da7ec;
     }
     body { padding: 0; background: #ffffff; }
@@ -342,22 +425,24 @@
     .print-head { margin-bottom: 18px; }
     .print-head h1 { font-size: 1.3rem; }
     .print-meta { font-size: 0.85rem; color: var(--text-secondary); }
+    .table-scroll { overflow: visible; }
+    table { font-size: 0.72rem; }
   }
 </style>
 </head>
 <body>
 <main>
   <div class="print-only print-head">
-    <h1>Eurobox Logistics Calculation</h1>
+    <h1>Industrial Storage Container Calculation</h1>
     <p class="print-meta" id="printMeta"></p>
   </div>
 
   <div class="page-head no-print">
     <div>
-      <h1>Eurobox Logistics Calculator</h1>
-      <p class="subtitle">Volume, Euro pallet loads, and 20&thinsp;ft container utilisation from stacking-container quantities.</p>
+      <h1>Industrial Storage Container Calculator</h1>
+      <p class="subtitle">Euroboxes and attached-lid containers &mdash; usable capacity, pallet and 20&thinsp;ft container loads, and volume price per usable litre.</p>
     </div>
-    <button id="pdfBtn" type="button" title="Opens the print dialog — choose “Save as PDF”">🖨 Save as PDF</button>
+    <button id="pdfBtn" type="button" title="Opens the print dialog &mdash; choose &ldquo;Save as PDF&rdquo;">&#128424; Save as PDF</button>
   </div>
 
   <div id="sections" class="no-print"></div>
@@ -367,7 +452,7 @@
     <div class="custom-wrap">
       <div id="customRows"></div>
       <button class="add" type="button" id="addCustom">+ Add custom box</button>
-      <p class="custom-hint">Dimensions in cm, external.</p>
+      <p class="custom-hint">External dimensions in cm. Usable capacity is estimated from the wall style &mdash; straight-walled loses ~22&thinsp;mm per side, tapered (ALC) about a quarter of the external volume.</p>
     </div>
   </details>
 
@@ -401,6 +486,15 @@
           <option value="eur6">EUR&#8209;6 half pallet (800 &times; 600 mm)</option>
         </select>
       </div>
+      <div class="setting">
+        <label for="currency">Currency</label>
+        <select id="currency">
+          <option value="ILS" selected>&#8362; ILS</option>
+          <option value="USD">$ USD</option>
+          <option value="EUR">&euro; EUR</option>
+          <option value="GBP">&pound; GBP</option>
+        </select>
+      </div>
     </div>
   </section>
 
@@ -420,7 +514,7 @@
   </section>
 
   <section class="card">
-    <h2>Pallet breakdown</h2>
+    <h2>Container breakdown</h2>
     <div id="palletTable" class="table-scroll"><p class="empty-note">Enter quantities above to see the breakdown.</p></div>
   </section>
 
@@ -429,15 +523,33 @@
     <div class="diagrams" id="diagrams"><p class="empty-note">Top-down view of one layer per box type will appear here.</p></div>
   </section>
 
+  <section class="card" id="compareCard">
+    <h2>Compare purchase options</h2>
+    <p class="card-intro no-print">
+      Price up two or more shopping baskets and rank them on <strong>volume price</strong> &mdash; what one usable
+      litre costs to buy. Leave the price blank to compare on capacity and space alone.
+    </p>
+    <div id="cmpRows" class="no-print"></div>
+    <div class="cmp-toolbar no-print">
+      <button class="add" type="button" id="addCmp">+ Add option</button>
+      <span class="spacer"></span>
+      <button type="button" id="clearCmp">Clear</button>
+    </div>
+    <div id="cmpOut" style="margin-top:16px"></div>
+  </section>
+
   <footer>
-    <p>Assumptions: external box dimensions; single-SKU pallets (no mixing box types on one pallet); no overhang; EUR&#8209;1 pallet height 144&nbsp;mm; 20&thinsp;ft container internal volume 33.2&nbsp;m&sup3; holding 11 EUR&#8209;1 pallets on the floor.</p>
-    <p>Pallet counts are conservative estimates for planning, not a packing optimiser.</p>
+    <p><strong>Volume price</strong> is this tool's unit for comparing what a container is worth: <em>purchase price &divide; usable capacity</em>, quoted in currency per usable litre, with the same figure per cubic metre alongside it. Lower is better. There is no industry-standard name for it &mdash; freight and self-storage quote per m&sup3;, supermarkets call it unit pricing, and container manufacturers quote per box &mdash; so the definition here is the tool's own. Litres are the primary scale because every container on the market lands between about 0.10 and 10 per litre, which reads more easily than four-digit figures per m&sup3;.</p>
+    <p><strong>Volume terms.</strong> <em>External volume</em> is L&nbsp;&times;&nbsp;W&nbsp;&times;&nbsp;H &mdash; the space a full box occupies, and what pallet and container figures are based on. <em>Usable capacity</em> is what fits inside, from published internal dimensions; it is the basis for volume price. Comparing on external volume would flatter a tapered ALC, which is exactly the error this calculator exists to avoid.</p>
+    <p><strong>Assumptions.</strong> Single-SKU pallets (no mixing box types on one pallet); no overhang; EUR&#8209;1 pallet height 144&nbsp;mm; 20&thinsp;ft container internal volume 33.2&nbsp;m&sup3; holding 11 EUR&#8209;1 pallets on the floor. Pallet counts are conservative estimates for planning, not a packing optimiser.</p>
+    <p><strong>ALCs.</strong> Attached-lid containers include their lid, have sloping walls, and nest about 75&nbsp;% into each other when empty &mdash; so they lose usable volume against a straight-walled Eurobox of the same external size but win badly on the return leg and on empty storage. Euroboxes are assumed not to nest.</p>
+    <p>Catalogue capacities are typical published figures and vary by manufacturer &mdash; check the supplier's own internal dimensions before committing to a large order.</p>
   </footer>
 </main>
 
 <div class="sticky-bar no-print" id="stickyBar" role="status" title="Jump to results">
   <div class="st"><div class="l">Boxes</div><div class="v" id="sbBoxes">0</div></div>
-  <div class="st"><div class="l">Volume</div><div class="v" id="sbVol">0 m³</div></div>
+  <div class="st"><div class="l">Usable</div><div class="v" id="sbCap">0 L</div></div>
   <div class="st"><div class="l">Pallets</div><div class="v" id="sbPallets">0</div></div>
   <div class="st"><div class="l">20 ft</div><div class="v" id="sbTeu">0%</div></div>
 </div>
@@ -445,16 +557,51 @@
 <script>
 "use strict";
 
-// ---- reference data (all dimensions in mm, external) ----
-const FOOTPRINTS = [
-  { key: "600x400", L: 600, W: 400, name: "60 × 40 cm", sub: "classic Eurobox footprint", open: true,
-    heights: [120, 170, 175, 220, 230, 270, 310, 320, 420] },
-  { key: "400x300", L: 400, W: 300, name: "40 × 30 cm", sub: "half footprint", open: false,
-    heights: [120, 170, 220, 270, 320] },
-  { key: "300x200", L: 300, W: 200, name: "30 × 20 cm", sub: "quarter footprint", open: false,
-    heights: [120, 170, 220] },
-  { key: "800x600", L: 800, W: 600, name: "80 × 60 cm", sub: "double footprint", open: false,
-    heights: [220, 320, 420] },
+// ============================================================================
+// Reference data. All dimensions in mm (external); capacities in litres.
+//
+// `cap` is USABLE capacity, not the external L*W*H. For the Euro families it is
+// computed from published internal dimensions (600x400 boxes are consistently
+// 550 x 355 internal, 400x300 are 350 x 250, with the internal height about
+// 10-15 mm under the external one). For ALCs it is the manufacturer's published
+// nominal capacity, which already accounts for the wall taper.
+//
+// Sources and the verification date are in docs/ of this repo.
+// ============================================================================
+
+const FAMILIES = {
+  euro: {
+    name: "Euro stacking containers",
+    sub: "open top, straight walls, lid sold separately — stack but do not nest",
+    nestRatio: 0,      // fraction of its own height a nested empty box saves
+    taper: false,
+  },
+  alc: {
+    name: "Attached-lid containers (ALC)",
+    sub: "hinged lid included, sloping walls — stack when full, nest ~75 % when empty",
+    nestRatio: 0.75,
+    taper: true,
+  },
+};
+
+const GROUPS = [
+  { fam: "euro", L: 600, W: 400, name: "60 × 40 cm", sub: "classic Eurobox footprint", open: true,
+    sizes: [
+      { H: 120, cap: 21 }, { H: 170, cap: 30 }, { H: 175, cap: 31 }, { H: 220, cap: 40 },
+      { H: 230, cap: 42 }, { H: 270, cap: 50 }, { H: 310, cap: 58 }, { H: 320, cap: 60 },
+      { H: 340, cap: 64 }, { H: 420, cap: 79 },
+    ] },
+  { fam: "euro", L: 400, W: 300, name: "40 × 30 cm", sub: "half footprint", open: false,
+    sizes: [ { H: 120, cap: 10 }, { H: 170, cap: 14 }, { H: 220, cap: 18 }, { H: 270, cap: 23 }, { H: 320, cap: 27 } ] },
+  { fam: "euro", L: 300, W: 200, name: "30 × 20 cm", sub: "quarter footprint", open: false,
+    sizes: [ { H: 120, cap: 5 }, { H: 170, cap: 7 }, { H: 220, cap: 9 } ] },
+  { fam: "euro", L: 800, W: 600, name: "80 × 60 cm", sub: "double footprint", open: false,
+    sizes: [ { H: 220, cap: 82 }, { H: 320, cap: 124 }, { H: 420, cap: 165 } ] },
+
+  { fam: "alc", L: 600, W: 400, name: "60 × 40 cm", sub: "the standard sloping ALC range", open: true,
+    sizes: [ { H: 250, cap: 44 }, { H: 310, cap: 56 }, { H: 367, cap: 65 }, { H: 400, cap: 80 } ] },
+  { fam: "alc", L: 400, W: 300, name: "40 × 30 cm", sub: "half footprint", open: false,
+    sizes: [ { H: 222, cap: 22 }, { H: 264, cap: 25 }, { H: 306, cap: 30 } ] },
 ];
 
 const PALLETS = {
@@ -462,69 +609,140 @@ const PALLETS = {
   eur6: { name: "EUR-6", L: 800, W: 600, deckH: 144, perTeuFloor: 22 },
 };
 
-const TEU_VOLUME_M3 = 33.2; // 20ft container internal volume
+const CURRENCIES = { ILS: "₪", USD: "$", EUR: "€", GBP: "£" };
+
+const TEU_VOLUME_M3 = 33.2; // 20 ft container internal volume
 
 const cm = mm => (mm / 10) % 1 === 0 ? String(mm / 10) : (mm / 10).toFixed(1);
+const famLabel = fam => fam === "alc" ? "ALC" : "Euro";
 
-// ---- box icon: small oblique-projection box with a height arrow ----
-function boxIcon(L, W, H) {
-  const w = Math.round(L * 0.075) + 14;      // front-face width from footprint length
-  const h = Math.max(10, Math.round(H * 0.105)); // front-face height from box height
-  const dx = 9, dy = 7;                       // depth offset
+// Flat catalogue: every tile and every comparison dropdown entry indexes into this.
+const CATALOGUE = [];
+for (const g of GROUPS) {
+  g.key = `${g.fam}-${g.L}x${g.W}`;
+  for (const s of g.sizes) {
+    CATALOGUE.push({
+      idx: CATALOGUE.length,
+      fam: g.fam, groupKey: g.key,
+      L: g.L, W: g.W, H: s.H, cap: s.cap,
+      name: `${cm(g.L)} × ${cm(g.W)} × ${cm(s.H)} cm`,
+      estimated: false,
+    });
+  }
+}
+
+// Usable capacity when the catalogue has no published figure (custom sizes).
+// Straight-walled: internal footprint loses ~45 mm on each axis, height ~15 mm.
+// Tapered (ALC): the published range sits at ~75 % of external across all heights.
+function estimateCap(L, W, H, taper) {
+  if (taper) return L * W * H * 0.75 / 1e6;
+  return Math.max(0, L - 45) * Math.max(0, W - 45) * Math.max(0, H - 15) / 1e6;
+}
+
+// ---- box icon: oblique-projection box, sloping and lidded for ALCs ----
+function boxIcon(L, W, H, fam) {
+  const alc = fam === "alc";
+  const w = Math.round(L * 0.075) + 14;           // front-face width from footprint length
+  const h = Math.max(10, Math.round(H * 0.105));  // front-face height from box height
+  const dx = 9, dy = 7;                           // depth offset
   const faceY = dy + 2;
   const arrowX = w + dx + 10;
   const svgW = arrowX + 8, svgH = faceY + h + 4;
   const yTop = faceY, yBot = faceY + h;
+  const front = alc ? "var(--alc-front)" : "var(--box-front)";
+  const top = alc ? "var(--alc-top)" : "var(--box-top)";
+  const side = alc ? "var(--alc-side)" : "var(--box-side)";
+  const line = alc ? "var(--alc-line)" : "var(--accent)";
+  // ALCs are drawn with a taper (narrower base) and a lid seam near the top.
+  const taper = alc ? Math.max(2, Math.round(w * 0.08)) : 0;
+  const lidY = alc ? yTop + Math.max(3, Math.round(h * 0.16)) : 0;
   return `<svg width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}" aria-hidden="true">
-    <polygon points="0,${faceY} ${dx},${faceY - dy} ${w + dx},${faceY - dy} ${w},${faceY}" fill="var(--box-top)"/>
-    <polygon points="${w},${faceY} ${w + dx},${faceY - dy} ${w + dx},${yBot - dy} ${w},${yBot}" fill="var(--box-side)"/>
-    <rect x="0" y="${faceY}" width="${w}" height="${h}" fill="var(--box-front)" stroke="var(--accent)" stroke-width="1"/>
+    <polygon points="0,${faceY} ${dx},${faceY - dy} ${w + dx},${faceY - dy} ${w},${faceY}" fill="${top}"/>
+    <polygon points="${w},${faceY} ${w + dx},${faceY - dy} ${w + dx},${yBot - dy} ${w - taper},${yBot}" fill="${side}"/>
+    <polygon points="0,${yTop} ${w},${yTop} ${w - taper},${yBot} ${taper},${yBot}" fill="${front}" stroke="${line}" stroke-width="1"/>
+    ${alc ? `<line x1="0" y1="${lidY}" x2="${w}" y2="${lidY}" stroke="${line}" stroke-width="1"/>` : ""}
     <line x1="${arrowX}" y1="${yTop}" x2="${arrowX}" y2="${yBot}" stroke="var(--text-muted)" stroke-width="1.2"/>
     <polyline points="${arrowX - 3},${yTop + 4} ${arrowX},${yTop} ${arrowX + 3},${yTop + 4}" fill="none" stroke="var(--text-muted)" stroke-width="1.2"/>
     <polyline points="${arrowX - 3},${yBot - 4} ${arrowX},${yBot} ${arrowX + 3},${yBot - 4}" fill="none" stroke="var(--text-muted)" stroke-width="1.2"/>
   </svg>`;
 }
 
-// ---- build the footprint sections ----
+// ---- build the family / footprint sections ----
 const sectionsEl = document.getElementById("sections");
-for (const fp of FOOTPRINTS) {
+let lastFam = null;
+for (const g of GROUPS) {
+  if (g.fam !== lastFam) {
+    const head = document.createElement("div");
+    head.className = "family-head";
+    head.innerHTML = `<h2>${FAMILIES[g.fam].name}</h2><span class="fam-sub">${FAMILIES[g.fam].sub}</span>`;
+    sectionsEl.appendChild(head);
+    lastFam = g.fam;
+  }
   const det = document.createElement("details");
   det.className = "footprint";
-  if (fp.open) det.open = true;
+  if (g.open) det.open = true;
+  const tiles = CATALOGUE.filter(c => c.groupKey === g.key);
   det.innerHTML =
-    `<summary>${fp.name} <span class="fp-sub">${fp.sub}</span><span class="fp-count" id="count-${fp.key}"></span></summary>` +
+    `<summary>${g.name} <span class="fp-sub">${g.sub}</span><span class="fp-count" id="count-${g.key}"></span></summary>` +
     `<div class="size-grid">` +
-    fp.heights.map(H =>
-      `<div class="size-tile" data-fp="${fp.key}" data-h="${H}">` +
-      boxIcon(fp.L, fp.W, H) +
-      `<div class="ht-label">↕ ${cm(H)} cm</div>` +
+    tiles.map(c =>
+      `<div class="size-tile" data-idx="${c.idx}">` +
+      boxIcon(c.L, c.W, c.H, c.fam) +
+      `<div class="ht-label">↕ ${cm(c.H)} cm</div>` +
+      `<div class="cap-label">${c.cap} L usable</div>` +
       `<input type="number" min="0" placeholder="0" inputmode="numeric" ` +
-      `aria-label="Quantity of ${fp.name} × ${cm(H)} cm boxes">` +
+      `aria-label="Quantity of ${g.name} × ${cm(c.H)} cm boxes">` +
       `</div>`
     ).join("") +
     `</div>`;
   sectionsEl.appendChild(det);
 }
-sectionsEl.addEventListener("input", recalc);
+sectionsEl.addEventListener("input", onInput);
 
 // ---- custom rows ----
 const customRowsEl = document.getElementById("customRows");
+let customSeq = 0;
 function addCustomRow() {
   const row = document.createElement("div");
   row.className = "custom-row";
+  row.dataset.cid = String(++customSeq);
   row.innerHTML =
     '<input type="number" class="cL" placeholder="L" min="1" inputmode="decimal" aria-label="Length cm"><span class="x">×</span>' +
     '<input type="number" class="cW" placeholder="W" min="1" inputmode="decimal" aria-label="Width cm"><span class="x">×</span>' +
     '<input type="number" class="cH" placeholder="H" min="1" inputmode="decimal" aria-label="Height cm"><span class="x">cm</span>' +
+    '<select class="cFam" aria-label="Wall style"><option value="euro">straight walls</option><option value="alc">tapered / ALC</option></select>' +
     '<span class="x" style="margin-left:8px">Qty</span><input type="number" class="cQ" min="0" placeholder="0" inputmode="numeric" aria-label="Quantity">' +
     '<button class="remove" type="button" title="Remove">✕</button>';
-  row.querySelector(".remove").addEventListener("click", () => { row.remove(); recalc(); });
-  row.addEventListener("input", recalc);
+  row.querySelector(".remove").addEventListener("click", () => { row.remove(); onInput(); });
+  row.addEventListener("input", onInput);
+  row.addEventListener("change", onInput);
   customRowsEl.appendChild(row);
   return row;
 }
-document.getElementById("addCustom").addEventListener("click", () => addCustomRow());
+document.getElementById("addCustom").addEventListener("click", () => { addCustomRow(); onInput(); });
 addCustomRow();
+
+// Custom rows that are fully specified become selectable in the comparison, so a
+// size the catalogue does not list can still be priced against one that it does.
+function customBoxes() {
+  const out = [];
+  for (const row of customRowsEl.querySelectorAll(".custom-row")) {
+    const L = (parseFloat(row.querySelector(".cL").value) || 0) * 10;
+    const W = (parseFloat(row.querySelector(".cW").value) || 0) * 10;
+    const H = (parseFloat(row.querySelector(".cH").value) || 0) * 10;
+    if (L <= 0 || W <= 0 || H <= 0) continue;
+    const fam = row.querySelector(".cFam").value;
+    out.push({
+      key: `custom:${row.dataset.cid}`,
+      fam, L, W, H,
+      cap: estimateCap(L, W, H, FAMILIES[fam].taper),
+      estimated: true,
+      qty: parseInt(row.querySelector(".cQ").value, 10) || 0,
+      name: `Custom ${cm(L)} × ${cm(W)} × ${cm(H)} cm`,
+    });
+  }
+  return out;
+}
 
 // ---- 3D models ----
 // The GLBs live on the blog so this file works unchanged from GitHub Pages, from
@@ -535,14 +753,14 @@ const MODEL_VIEWER_SRC = "https://ajax.googleapis.com/ajax/libs/model-viewer/3.5
 
 // L/W are the footprint as the calculator uses it (long side first); H is external height.
 const MODELS = [
-  { file: "eurobox-400x300x150", code: "EU4315", name: "Euro container",       L: 400, W: 300, H: 150, addable: true },
-  { file: "eurobox-600x400x230", code: "EU6423", name: "Euro container",       L: 600, W: 400, H: 230, addable: true },
-  { file: "eurobox-600x400x340", code: "EU6434", name: "Euro container",       L: 600, W: 400, H: 340, addable: true },
-  { file: "alc-600x400x415",     code: "ALC6441", name: "Attached-lid container", L: 600, W: 400, H: 415, addable: true },
-  { file: "picking-bin-1",       code: "PB1",    name: "Picking bin, large",   L: 450, W: 300, H: 210, addable: true },
-  { file: "picking-bin-2",       code: "PB2",    name: "Picking bin, medium",  L: 295, W: 205, H: 160, addable: true },
-  { file: "picking-bin-3",       code: "PB3",    name: "Picking bin, small",   L: 200, W: 145, H: 130, addable: true },
-  { file: "shelving-1600x600x2300", code: "SB1", name: "Shelving bay, 5 levels", L: 1600, W: 600, H: 2300, addable: false },
+  { file: "eurobox-400x300x150", code: "EU4315", name: "Euro container",       L: 400, W: 300, H: 150, fam: "euro", addable: true },
+  { file: "eurobox-600x400x230", code: "EU6423", name: "Euro container",       L: 600, W: 400, H: 230, fam: "euro", addable: true },
+  { file: "eurobox-600x400x340", code: "EU6434", name: "Euro container",       L: 600, W: 400, H: 340, fam: "euro", addable: true },
+  { file: "alc-600x400x415",     code: "ALC6441", name: "Attached-lid container", L: 600, W: 400, H: 415, fam: "alc", addable: true },
+  { file: "picking-bin-1",       code: "PB1",    name: "Picking bin, large",   L: 450, W: 300, H: 210, fam: "euro", addable: true },
+  { file: "picking-bin-2",       code: "PB2",    name: "Picking bin, medium",  L: 295, W: 205, H: 160, fam: "euro", addable: true },
+  { file: "picking-bin-3",       code: "PB3",    name: "Picking bin, small",   L: 200, W: 145, H: 130, fam: "euro", addable: true },
+  { file: "shelving-1600x600x2300", code: "SB1", name: "Shelving bay, 5 levels", L: 1600, W: 600, H: 2300, fam: "euro", addable: false },
 ];
 
 let modelViewerLoading = null;
@@ -563,7 +781,8 @@ function loadModelViewer() {
 // Put one of a model's dimensions into the calculation: use the catalogue tile when the
 // size is one the calculator already lists, otherwise fill a custom row.
 function addModelToCalc(m) {
-  const tile = sectionsEl.querySelector(`.size-tile[data-fp="${m.L}x${m.W}"][data-h="${m.H}"]`);
+  const hit = CATALOGUE.find(c => c.fam === m.fam && c.L === m.L && c.W === m.W && c.H === m.H);
+  const tile = hit && sectionsEl.querySelector(`.size-tile[data-idx="${hit.idx}"]`);
   if (tile) {
     const input = tile.querySelector("input");
     input.value = (parseInt(input.value, 10) || 0) + 1;
@@ -576,12 +795,13 @@ function addModelToCalc(m) {
     row.querySelector(".cL").value = m.L / 10;
     row.querySelector(".cW").value = m.W / 10;
     row.querySelector(".cH").value = m.H / 10;
+    row.querySelector(".cFam").value = m.fam;
     const q = row.querySelector(".cQ");
     q.value = (parseInt(q.value, 10) || 0) + 1;
     document.getElementById("customSection").open = true;
     row.scrollIntoView({ block: "center", behavior: "smooth" });
   }
-  recalc();
+  onInput();
 }
 
 const modelGridEl = document.getElementById("modelGrid");
@@ -633,8 +853,75 @@ for (const m of MODELS) {
   modelGridEl.appendChild(card);
 }
 
-document.getElementById("stackHeight").addEventListener("change", recalc);
-document.getElementById("palletType").addEventListener("change", recalc);
+// ---- comparison rows ----
+const cmpRowsEl = document.getElementById("cmpRows");
+function addCmpRow(preset) {
+  const row = document.createElement("div");
+  row.className = "cmp-row";
+  row.innerHTML =
+    '<select class="cmp-pick" aria-label="Container"></select>' +
+    '<span class="lab">Qty</span><input type="number" class="cmp-qty" min="0" placeholder="0" inputmode="numeric" aria-label="Quantity">' +
+    '<span class="lab cur-sym">₪</span><input type="number" class="cmp-price" min="0" step="0.01" placeholder="unit price" inputmode="decimal" aria-label="Unit price">' +
+    '<button class="remove" type="button" title="Remove">✕</button>';
+  row.querySelector(".remove").addEventListener("click", () => { row.remove(); onInput(); });
+  row.addEventListener("input", onInput);
+  row.addEventListener("change", onInput);
+  cmpRowsEl.appendChild(row);
+  refreshCmpOptions();
+  if (preset) {
+    if (preset.key) row.querySelector(".cmp-pick").value = preset.key;
+    if (preset.qty != null) row.querySelector(".cmp-qty").value = preset.qty;
+    if (preset.price != null) row.querySelector(".cmp-price").value = preset.price;
+  }
+  return row;
+}
+
+// Rebuild every dropdown from the catalogue plus whatever custom sizes currently
+// exist, keeping each row's selection where it still resolves.
+function refreshCmpOptions() {
+  const customs = customBoxes();
+  let html = "";
+  // The family has to be in the option text, not just the optgroup label: a closed
+  // <select> shows only the option, and "60×40×31" alone does not say Euro or ALC.
+  for (const famKey of Object.keys(FAMILIES)) {
+    html += `<optgroup label="${FAMILIES[famKey].name}">`;
+    for (const c of CATALOGUE.filter(x => x.fam === famKey)) {
+      html += `<option value="cat:${c.idx}">${famLabel(famKey)} ${cm(c.L)}×${cm(c.W)}×${cm(c.H)} cm — ${c.cap} L usable</option>`;
+    }
+    html += `</optgroup>`;
+  }
+  if (customs.length) {
+    html += `<optgroup label="Custom sizes">`;
+    for (const c of customs) {
+      html += `<option value="${c.key}">${famLabel(c.fam)} ${cm(c.L)}×${cm(c.W)}×${cm(c.H)} cm — ~${c.cap.toFixed(0)} L usable</option>`;
+    }
+    html += `</optgroup>`;
+  }
+  for (const sel of cmpRowsEl.querySelectorAll(".cmp-pick")) {
+    const prev = sel.value;
+    sel.innerHTML = html;
+    if (prev && sel.querySelector(`option[value="${CSS.escape(prev)}"]`)) sel.value = prev;
+  }
+}
+
+function resolveBox(key) {
+  if (key && key.startsWith("cat:")) {
+    const c = CATALOGUE[parseInt(key.slice(4), 10)];
+    return c ? { ...c } : null;
+  }
+  return customBoxes().find(c => c.key === key) || null;
+}
+
+document.getElementById("addCmp").addEventListener("click", () => { addCmpRow(); onInput(); });
+document.getElementById("clearCmp").addEventListener("click", () => {
+  cmpRowsEl.replaceChildren();
+  addCmpRow(); addCmpRow();
+  onInput();
+});
+
+document.getElementById("stackHeight").addEventListener("change", onInput);
+document.getElementById("palletType").addEventListener("change", onInput);
+document.getElementById("currency").addEventListener("change", onInput);
 document.getElementById("pdfBtn").addEventListener("click", () => window.print());
 // hide the print button inside the Android app WebView, where window.print() is a no-op
 if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
@@ -648,22 +935,16 @@ function readBoxes() {
     const qty = parseInt(tile.querySelector("input").value, 10) || 0;
     tile.classList.toggle("active", qty > 0);
     if (qty <= 0) continue;
-    const fp = FOOTPRINTS.find(f => f.key === tile.dataset.fp);
-    const H = parseInt(tile.dataset.h, 10);
-    out.push({ name: `${cm(fp.L)} × ${cm(fp.W)} × ${cm(H)} cm`, fpKey: fp.key, L: fp.L, W: fp.W, H, qty });
+    const c = CATALOGUE[parseInt(tile.dataset.idx, 10)];
+    out.push({ ...c, qty, key: `cat:${c.idx}` });
   }
-  for (const row of customRowsEl.querySelectorAll(".custom-row")) {
-    const qty = parseInt(row.querySelector(".cQ").value, 10) || 0;
-    const L = (parseFloat(row.querySelector(".cL").value) || 0) * 10;
-    const W = (parseFloat(row.querySelector(".cW").value) || 0) * 10;
-    const H = (parseFloat(row.querySelector(".cH").value) || 0) * 10;
-    if (qty <= 0 || L <= 0 || W <= 0 || H <= 0) continue;
-    out.push({ name: `Custom ${cm(L)} × ${cm(W)} × ${cm(H)} cm`, fpKey: "custom", L, W, H, qty });
+  for (const c of customBoxes()) {
+    if (c.qty > 0) out.push({ ...c, groupKey: "custom" });
   }
   return out;
 }
 
-// best grid orientation of box (L×W) on pallet (PL×PW), no overhang
+// best grid orientation of box (L x W) on pallet (PL x PW), no overhang
 function bestLayer(box, pallet) {
   const a = { nx: Math.floor(pallet.L / box.L), ny: Math.floor(pallet.W / box.W), rot: false };
   const b = { nx: Math.floor(pallet.L / box.W), ny: Math.floor(pallet.W / box.L), rot: true };
@@ -672,27 +953,45 @@ function bestLayer(box, pallet) {
   return b.count > a.count ? b : a;
 }
 
+// Everything derivable from one box type at one quantity. Used by both the main
+// calculation and each comparison option, so the two can never disagree.
+function analyse(box, qty, pallet, stackH) {
+  const extM3 = box.L * box.W * box.H * qty / 1e9;
+  const usableL = box.cap * qty;
+  const layer = bestLayer(box, pallet);
+  const layers = Math.max(0, Math.floor((stackH - pallet.deckH) / box.H));
+  const perPallet = layer.count * layers;
+  const pallets = perPallet > 0 ? Math.ceil(qty / perPallet) : null;
+  // Nested empties: the first box is full height, each further one adds only the
+  // part that does not sink into the one below.
+  const nest = FAMILIES[box.fam].nestRatio;
+  const nestedH = qty > 0 ? box.H + (qty - 1) * box.H * (1 - nest) : 0;
+  const nestedM3 = box.L * box.W * nestedH / 1e9;
+  return {
+    ...box, qty, extM3, usableL, layer, layers, perPallet, pallets, nestedM3,
+    spaceEff: extM3 > 0 ? usableL / (extM3 * 1000) : 0,
+  };
+}
+
 function compute() {
   const boxes = readBoxes();
   const stackH = parseInt(document.getElementById("stackHeight").value, 10);
   const pallet = PALLETS[document.getElementById("palletType").value];
 
-  let totalBoxes = 0, totalVolume = 0, totalPallets = 0;
+  let totalBoxes = 0, totalVolume = 0, totalUsable = 0, totalPallets = 0, totalNested = 0;
   const perType = boxes.map(box => {
-    const vol = box.L * box.W * box.H * box.qty / 1e9;
-    const layer = bestLayer(box, pallet);
-    const layers = Math.max(0, Math.floor((stackH - pallet.deckH) / box.H));
-    const perPallet = layer.count * layers;
-    const pallets = perPallet > 0 ? Math.ceil(box.qty / perPallet) : null;
-    totalBoxes += box.qty;
-    totalVolume += vol;
-    if (pallets !== null) totalPallets += pallets;
-    return { ...box, vol, layer, layers, perPallet, pallets };
+    const a = analyse(box, box.qty, pallet, stackH);
+    totalBoxes += a.qty;
+    totalVolume += a.extM3;
+    totalUsable += a.usableL;
+    totalNested += a.nestedM3;
+    if (a.pallets !== null) totalPallets += a.pallets;
+    return a;
   });
 
   return {
     boxes: perType, pallet, stackH,
-    totalBoxes, totalVolume, totalPallets,
+    totalBoxes, totalVolume, totalUsable, totalPallets, totalNested,
     teuByVolume: totalVolume / TEU_VOLUME_M3,
     teuByPallets: totalPallets / pallet.perTeuFloor,
   };
@@ -701,22 +1000,29 @@ function compute() {
 // ---- rendering ----
 const fmt = new Intl.NumberFormat("en-US");
 const fmtVol = v => v >= 10 ? v.toFixed(1) : v.toFixed(2);
+const cur = () => document.getElementById("currency").value;
+const curSym = () => CURRENCIES[cur()];
+const money = v => curSym() + fmt.format(Math.round(v));
+const moneyPrecise = v => curSym() + (v >= 1 ? v.toFixed(2) : v.toFixed(3));
 
 function renderCounts(r) {
-  const byFp = {};
-  for (const b of r.boxes) byFp[b.fpKey] = (byFp[b.fpKey] || 0) + b.qty;
-  for (const fp of [...FOOTPRINTS.map(f => f.key), "custom"]) {
-    const el = document.getElementById("count-" + fp);
-    el.textContent = byFp[fp] ? `${fmt.format(byFp[fp])} boxes` : "";
+  const byGroup = {};
+  for (const b of r.boxes) byGroup[b.groupKey] = (byGroup[b.groupKey] || 0) + b.qty;
+  for (const key of [...GROUPS.map(g => g.key), "custom"]) {
+    const el = document.getElementById("count-" + key);
+    if (el) el.textContent = byGroup[key] ? `${fmt.format(byGroup[key])} boxes` : "";
   }
 }
 
 function renderTiles(r) {
+  const eff = r.totalVolume > 0 ? (r.totalUsable / (r.totalVolume * 1000)) * 100 : 0;
   const tiles = [
     { label: "Total boxes", value: fmt.format(r.totalBoxes), sub: "" },
-    { label: "Total volume", value: `${fmtVol(r.totalVolume)} m³`, sub: `${fmt.format(Math.round(r.totalVolume * 1000))} litres` },
+    { label: "Usable capacity", value: `${fmt.format(Math.round(r.totalUsable))} L`, sub: `${eff.toFixed(0)}% of external volume` },
+    { label: "External volume", value: `${fmtVol(r.totalVolume)} m³`, sub: "space occupied when full" },
     { label: `${r.pallet.name} pallets`, value: fmt.format(r.totalPallets), sub: `stacked to ${(r.stackH / 1000).toFixed(2)} m` },
     { label: "20 ft equivalent", value: `${(r.teuByVolume * 100).toFixed(1)}%`, sub: "of one TEU by volume" },
+    { label: "Empty, nested", value: `${fmtVol(r.totalNested)} m³`, sub: "storage / return-leg volume" },
   ];
   document.getElementById("tiles").innerHTML = tiles.map(t =>
     `<div class="tile"><div class="label">${t.label}</div><div class="value">${t.value}</div>` +
@@ -759,16 +1065,26 @@ function renderTable(r) {
     const perPallet = b.perPallet > 0
       ? `${b.layer.count} / layer × ${b.layers} layers = ${b.perPallet}`
       : "won't fit at this stack height";
-    return `<tr><td>${b.name}</td><td class="num">${fmt.format(b.qty)}</td>` +
-      `<td class="num">${fmtVol(b.vol)}</td><td>${perPallet}</td>` +
+    return `<tr><td>${b.name}${b.estimated ? " *" : ""}</td>` +
+      `<td>${famLabel(b.fam)}</td>` +
+      `<td class="num">${fmt.format(b.qty)}</td>` +
+      `<td class="num">${fmt.format(Math.round(b.usableL))}</td>` +
+      `<td class="num">${fmtVol(b.extM3)}</td>` +
+      `<td class="num">${(b.spaceEff * 100).toFixed(0)}%</td>` +
+      `<td>${perPallet}</td>` +
       `<td class="num">${b.pallets === null ? "—" : fmt.format(b.pallets)}</td></tr>`;
   }).join("");
+  const anyEst = r.boxes.some(b => b.estimated);
+  const totalEff = r.totalVolume > 0 ? (r.totalUsable / (r.totalVolume * 1000)) * 100 : 0;
   host.innerHTML =
-    `<table><thead><tr><th>Box</th><th class="num">Qty</th><th class="num">m³</th>` +
+    `<table><thead><tr><th>Box</th><th>Type</th><th class="num">Qty</th><th class="num">Usable L</th>` +
+    `<th class="num">External m³</th><th class="num">Space eff.</th>` +
     `<th>Per pallet</th><th class="num">Pallets</th></tr></thead><tbody>${rows}` +
-    `<tr class="total"><td>Total</td><td class="num">${fmt.format(r.totalBoxes)}</td>` +
-    `<td class="num">${fmtVol(r.totalVolume)}</td><td></td>` +
-    `<td class="num">${fmt.format(r.totalPallets)}</td></tr></tbody></table>`;
+    `<tr class="total"><td>Total</td><td></td><td class="num">${fmt.format(r.totalBoxes)}</td>` +
+    `<td class="num">${fmt.format(Math.round(r.totalUsable))}</td>` +
+    `<td class="num">${fmtVol(r.totalVolume)}</td><td class="num">${totalEff.toFixed(0)}%</td><td></td>` +
+    `<td class="num">${fmt.format(r.totalPallets)}</td></tr></tbody></table>` +
+    (anyEst ? `<p class="custom-hint">* usable capacity estimated from external dimensions</p>` : "");
 }
 
 function palletSvg(box, layer, pallet) {
@@ -777,11 +1093,12 @@ function palletSvg(box, layer, pallet) {
   const pad = 2;
   const boxL = (layer.rot ? box.W : box.L) * scale;
   const boxW = (layer.rot ? box.L : box.W) * scale;
+  const fill = box.fam === "alc" ? "var(--alc-side)" : "var(--accent)";
   let rects = "";
   for (let i = 0; i < layer.nx; i++) {
     for (let j = 0; j < layer.ny; j++) {
       rects += `<rect x="${(i * boxL + pad / 2).toFixed(1)}" y="${(j * boxW + pad / 2).toFixed(1)}" ` +
-        `width="${(boxL - pad).toFixed(1)}" height="${(boxW - pad).toFixed(1)}" rx="2" fill="var(--accent)">` +
+        `width="${(boxL - pad).toFixed(1)}" height="${(boxW - pad).toFixed(1)}" rx="2" fill="${fill}">` +
         `<title>${box.name} — position ${i * layer.ny + j + 1} of ${layer.count}</title></rect>`;
     }
   }
@@ -803,10 +1120,150 @@ function renderDiagrams(r) {
   ).join("");
 }
 
+// ---- purchase comparison ----
+function bars(title, items, valueFmt, lowerIsBetter) {
+  const vals = items.map(i => i.v).filter(v => isFinite(v) && v > 0);
+  if (!vals.length) return "";
+  const max = Math.max(...vals);
+  const best = lowerIsBetter ? Math.min(...vals) : Math.max(...vals);
+  return `<h3>${title}</h3>` + items.map(i => {
+    if (!isFinite(i.v) || i.v <= 0) {
+      return `<div class="bar-row"><div class="bl">${i.label}</div><div class="bar-track"></div><div class="bv">—</div></div>`;
+    }
+    const pct = (i.v / max) * 100;
+    const win = Math.abs(i.v - best) < 1e-9;
+    return `<div class="bar-row"><div class="bl">${i.label}</div>` +
+      `<div class="bar-track"><div class="bf${win ? " win" : ""}" style="width:${pct.toFixed(1)}%"></div></div>` +
+      `<div class="bv">${valueFmt(i.v)}</div></div>`;
+  }).join("");
+}
+
+function renderCompare(r) {
+  const host = document.getElementById("cmpOut");
+  const stackH = r.stackH, pallet = r.pallet;
+
+  const opts = [];
+  for (const row of cmpRowsEl.querySelectorAll(".cmp-row")) {
+    row.querySelector(".cur-sym").textContent = curSym();
+    const box = resolveBox(row.querySelector(".cmp-pick").value);
+    const qty = parseInt(row.querySelector(".cmp-qty").value, 10) || 0;
+    const priceRaw = row.querySelector(".cmp-price").value;
+    const price = priceRaw === "" ? null : (parseFloat(priceRaw) || 0);
+    if (!box || qty <= 0) continue;
+    const a = analyse(box, qty, pallet, stackH);
+    a.unitPrice = price;
+    a.totalCost = price === null ? null : price * qty;
+    // Volume price: what one litre of usable capacity costs to buy. See the
+    // footer note — there is no industry-standard term for this, so the tool
+    // defines one. Litres rather than m³ because it keeps the number in a
+    // readable 0.10–10 range for every container on the market.
+    a.costPerL = a.totalCost === null || a.usableL <= 0 ? null : a.totalCost / a.usableL;
+    a.costPerM3 = a.costPerL === null ? null : a.costPerL * 1000;
+    a.label = `${qty} × ${famLabel(box.fam)} ${cm(box.L)}×${cm(box.W)}×${cm(box.H)}`;
+    opts.push(a);
+  }
+
+  if (opts.length < 1) {
+    host.innerHTML = '<p class="empty-note">Pick a container and a quantity in at least one option row.</p>';
+    return;
+  }
+
+  const priced = opts.filter(o => o.costPerL !== null && isFinite(o.costPerL) && o.costPerL > 0);
+  const bestCost = priced.length ? Math.min(...priced.map(o => o.costPerL)) : null;
+  const bestCap = Math.max(...opts.map(o => o.usableL));
+
+  const rows = opts.map(o => {
+    const isBest = bestCost !== null && o.costPerL !== null && Math.abs(o.costPerL - bestCost) < 1e-12;
+    return `<tr${isBest ? ' class="best"' : ""}>` +
+      `<td>${o.label}${o.estimated ? " *" : ""}${isBest ? '<span class="badge">best value</span>' : ""}</td>` +
+      `<td class="num">${o.unitPrice === null ? "—" : moneyPrecise(o.unitPrice)}</td>` +
+      `<td class="num">${o.totalCost === null ? "—" : money(o.totalCost)}</td>` +
+      `<td class="num">${fmt.format(Math.round(o.usableL))}</td>` +
+      `<td class="num">${o.costPerL === null ? "—" : moneyPrecise(o.costPerL)}</td>` +
+      `<td class="num">${o.costPerM3 === null ? "—" : money(o.costPerM3)}</td>` +
+      `<td class="num">${(o.spaceEff * 100).toFixed(0)}%</td>` +
+      `<td class="num">${fmtVol(o.extM3)}</td>` +
+      `<td class="num">${o.pallets === null ? "—" : fmt.format(o.pallets)}</td>` +
+      `<td class="num">${fmtVol(o.nestedM3)}</td></tr>`;
+  }).join("");
+
+  const table =
+    `<div class="table-scroll"><table><thead><tr>` +
+    `<th>Option</th><th class="num">Unit</th><th class="num">Total cost</th>` +
+    `<th class="num">Usable L</th>` +
+    `<th class="num">Volume price<br><span class="th-unit">${curSym()} / usable L</span></th>` +
+    `<th class="num">Same, per m³<br><span class="th-unit">${curSym()} / usable m³</span></th>` +
+    `<th class="num">Space eff.</th><th class="num">External m³</th>` +
+    `<th class="num">Pallets</th><th class="num">Empty m³</th>` +
+    `</tr></thead><tbody>${rows}</tbody></table></div>`;
+
+  const chart = `<div class="bars">` +
+    bars("Usable capacity", opts.map(o => ({ label: o.label, v: o.usableL })), v => fmt.format(Math.round(v)) + " L", false) +
+    (priced.length ? bars(`Volume price (${curSym()} per usable litre) — lower is better`, priced.map(o => ({ label: o.label, v: o.costPerL })), moneyPrecise, true) : "") +
+    bars("External volume — lower is better for the same capacity", opts.map(o => ({ label: o.label, v: o.extM3 })), v => fmtVol(v) + " m³", true) +
+    `</div>`;
+
+  host.innerHTML = table + chart + verdict(opts, priced, bestCost, bestCap);
+}
+
+function verdict(opts, priced, bestCost, bestCap) {
+  if (opts.length < 2) {
+    return `<p class="verdict empty">Add a second option to compare against.</p>`;
+  }
+  const capWinner = opts.find(o => Math.abs(o.usableL - bestCap) < 1e-9);
+  const parts = [];
+
+  if (priced.length >= 2) {
+    const winner = priced.find(o => Math.abs(o.costPerL - bestCost) < 1e-12);
+    const others = priced.filter(o => o !== winner);
+    const worst = others.reduce((a, b) => (a.costPerL > b.costPerL ? a : b));
+    const cheaperBy = ((worst.costPerL - winner.costPerL) / worst.costPerL) * 100;
+    parts.push(
+      `<strong>${winner.label}</strong> has the lowest volume price at ` +
+      `${moneyPrecise(winner.costPerL)} per usable litre (${money(winner.costPerM3)}/m³) — ` +
+      `${cheaperBy.toFixed(0)}% below ${worst.label} at ${moneyPrecise(worst.costPerL)}/L.`
+    );
+    if (winner !== capWinner) {
+      parts.push(
+        `It is not the biggest basket though: ${capWinner.label} holds ` +
+        `${fmt.format(Math.round(capWinner.usableL))} L against ${fmt.format(Math.round(winner.usableL))} L.`
+      );
+    }
+  } else {
+    parts.push(
+      `<strong>${capWinner.label}</strong> holds the most at ` +
+      `${fmt.format(Math.round(capWinner.usableL))} usable litres. Enter unit prices to rank on volume price.`
+    );
+  }
+
+  // Space efficiency is the other half of the answer: two baskets can hold the
+  // same litres while occupying very different amounts of warehouse.
+  const bestEff = opts.reduce((a, b) => (a.spaceEff > b.spaceEff ? a : b));
+  const worstEff = opts.reduce((a, b) => (a.spaceEff < b.spaceEff ? a : b));
+  if (bestEff !== worstEff && worstEff.spaceEff > 0) {
+    parts.push(
+      `On space, ${bestEff.label} turns ${(bestEff.spaceEff * 100).toFixed(0)}% of its ` +
+      `external volume into usable capacity against ${(worstEff.spaceEff * 100).toFixed(0)}% for ${worstEff.label}.`
+    );
+  }
+
+  const alcs = opts.filter(o => o.fam === "alc");
+  const euros = opts.filter(o => o.fam === "euro");
+  if (alcs.length && euros.length) {
+    const a = alcs[0], e = euros[0];
+    parts.push(
+      `Empty, the ALC option collapses to ${fmtVol(a.nestedM3)} m³ while the ` +
+      `Euro option still needs ${fmtVol(e.nestedM3)} m³ — and the ALC price already includes its lid.`
+    );
+  }
+
+  return `<p class="verdict">${parts.join(" ")}</p>`;
+}
+
 function renderStickyBar(r) {
   document.getElementById("stickyBar").classList.toggle("visible", r.totalBoxes > 0);
   document.getElementById("sbBoxes").textContent = fmt.format(r.totalBoxes);
-  document.getElementById("sbVol").textContent = fmtVol(r.totalVolume) + " m³";
+  document.getElementById("sbCap").textContent = fmt.format(Math.round(r.totalUsable)) + " L";
   document.getElementById("sbPallets").textContent = fmt.format(r.totalPallets);
   document.getElementById("sbTeu").textContent = (r.teuByVolume * 100).toFixed(0) + "%";
 }
@@ -818,7 +1275,94 @@ function renderPrintMeta(r) {
   document.getElementById("printMeta").textContent =
     `${d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })} · ` +
     `${r.pallet.name} pallet · max stack ${(r.stackH / 1000).toFixed(2)} m · ` +
-    `generated with the Eurobox Logistics Calculator`;
+    `prices in ${cur()} · generated with the Industrial Storage Container Calculator`;
+}
+
+// ---- state persistence ----
+// Prices in particular are worth keeping between visits; retyping a supplier's
+// price list to re-run one comparison is the fastest way to stop using the tool.
+const STORE_KEY = "iscalc.v1";
+let restoring = false;
+
+function saveState() {
+  if (restoring) return;
+  const state = {
+    stackHeight: document.getElementById("stackHeight").value,
+    palletType: document.getElementById("palletType").value,
+    currency: document.getElementById("currency").value,
+    qty: {},
+    custom: [],
+    compare: [],
+  };
+  for (const tile of sectionsEl.querySelectorAll(".size-tile")) {
+    const v = tile.querySelector("input").value;
+    if (v) state.qty[tile.dataset.idx] = v;
+  }
+  for (const row of customRowsEl.querySelectorAll(".custom-row")) {
+    const c = {
+      L: row.querySelector(".cL").value, W: row.querySelector(".cW").value,
+      H: row.querySelector(".cH").value, fam: row.querySelector(".cFam").value,
+      q: row.querySelector(".cQ").value,
+    };
+    if (c.L || c.W || c.H || c.q) state.custom.push(c);
+  }
+  for (const row of cmpRowsEl.querySelectorAll(".cmp-row")) {
+    state.compare.push({
+      key: row.querySelector(".cmp-pick").value,
+      qty: row.querySelector(".cmp-qty").value,
+      price: row.querySelector(".cmp-price").value,
+    });
+  }
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch { /* private mode */ }
+}
+
+function loadState() {
+  let state;
+  try { state = JSON.parse(localStorage.getItem(STORE_KEY) || "null"); } catch { state = null; }
+  restoring = true;
+  if (state) {
+    if (state.stackHeight) document.getElementById("stackHeight").value = state.stackHeight;
+    if (state.palletType) document.getElementById("palletType").value = state.palletType;
+    if (state.currency) document.getElementById("currency").value = state.currency;
+    for (const [idx, v] of Object.entries(state.qty || {})) {
+      const tile = sectionsEl.querySelector(`.size-tile[data-idx="${idx}"]`);
+      if (tile) {
+        tile.querySelector("input").value = v;
+        tile.closest("details.footprint").open = true;
+      }
+    }
+    if (state.custom && state.custom.length) {
+      customRowsEl.replaceChildren();
+      for (const c of state.custom) {
+        const row = addCustomRow();
+        row.querySelector(".cL").value = c.L || "";
+        row.querySelector(".cW").value = c.W || "";
+        row.querySelector(".cH").value = c.H || "";
+        row.querySelector(".cFam").value = c.fam || "euro";
+        row.querySelector(".cQ").value = c.q || "";
+      }
+      if (state.custom.some(c => c.q)) document.getElementById("customSection").open = true;
+    }
+    if (state.compare && state.compare.length) {
+      cmpRowsEl.replaceChildren();
+      for (const c of state.compare) addCmpRow(c);
+    }
+  }
+  // Seed the comparison with the two sizes this tool exists to weigh against each
+  // other: the standard 60x40x31 ALC and the 60x40x34 Eurobox.
+  if (!cmpRowsEl.children.length) {
+    const alc = CATALOGUE.find(c => c.fam === "alc" && c.L === 600 && c.W === 400 && c.H === 310);
+    const euro = CATALOGUE.find(c => c.fam === "euro" && c.L === 600 && c.W === 400 && c.H === 340);
+    addCmpRow({ key: `cat:${alc.idx}`, qty: 20 });
+    addCmpRow({ key: `cat:${euro.idx}`, qty: 20 });
+  }
+  restoring = false;
+}
+
+function onInput() {
+  refreshCmpOptions();
+  saveState();
+  recalc();
 }
 
 function recalc() {
@@ -828,10 +1372,13 @@ function recalc() {
   renderMeters(r);
   renderTable(r);
   renderDiagrams(r);
+  renderCompare(r);
   renderStickyBar(r);
   renderPrintMeta(r);
 }
 
+loadState();
+refreshCmpOptions();
 recalc();
 </script>
 </body>
