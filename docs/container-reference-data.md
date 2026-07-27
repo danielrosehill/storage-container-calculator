@@ -4,9 +4,15 @@ Provenance for every figure hard-coded in `index.html`. Verified **27 July 2026*
 
 Published in machine-readable form as
 [danielrosehill/storage-container-dimensions](https://huggingface.co/datasets/danielrosehill/storage-container-dimensions)
-on Hugging Face — same figures plus the VDA 4500 KLT sizes and per-row
-standards-conformance fields. `build.py` in that repo is the generator; if a
-capacity changes, change it there and mirror it into the `GROUPS` array here.
+on Hugging Face — same figures plus the VDA 4500 KLT sizes, 121 individual vendor
+listings, and per-row standards-conformance fields. `build.py` in that repo is the
+generator; if a capacity changes, change it there and mirror it into the `GROUPS`
+array here.
+
+The dataset also carries what this file cannot: `vendor_capacity_low_l` and
+`vendor_capacity_high_l` on every row, the range of capacities implied by each
+vendor's *own* published internal dimensions for that size. The catalogue below
+uses the low end of that range.
 
 The calculator's whole point is comparing containers on *usable* capacity, so the
 capacity figures matter more than the dimensions. Getting them wrong by 10 % changes
@@ -32,7 +38,18 @@ the tool being renamed away from "Eurobox calculator".
 Capacities are computed from published internal dimensions rather than copied from
 vendor "nominal litres", which round up by 5–10 %.
 
-The internal footprint is remarkably consistent across manufacturers:
+The internal footprint is consistent across manufacturers **if they are all
+measuring at the same height, and they are not**. Salesbridges publishes
+570 × 370 mm internal for a 600 × 400 box where Plastic Box Shop publishes
+555 × 355 and Yosibox 550 × 360 — the first is the top opening, the others are
+near the base, and a euro crate is slightly tapered, so all three are honest. The
+spread is 11 % in litres on the same box. The rules below take the conservative
+reading, which is why the catalogue's 60 × 40 × 32 box is 59.6 L where the market
+quotes it at anything from 60 to 66. Full evidence, per vendor:
+[`guidance/internal-dimensions.md`](https://huggingface.co/datasets/danielrosehill/storage-container-dimensions/blob/main/guidance/internal-dimensions.md)
+in the dataset repo.
+
+The rules:
 
 - **600 × 400** boxes are internally **550 × 355 mm**, internal height ≈ `H − 15 mm`
 - **400 × 300** boxes are internally **350 × 250 mm**, internal height ≈ `H − 10 mm`
@@ -50,8 +67,9 @@ Cross-checks against real SKUs (all agree within ~1 L):
 | plasticboxshop 76 L | 600 × 400 × 400 | 550 × 350 × 390 | 76 | 79.1 |
 | plasticboxshop 20 L | 400 × 300 × 220 | 350 × 250 × 210 | 20 | 18.4 |
 
-The 800 × 600 figures are the weakest of the set — they are formula-derived and not
-cross-checked against a published internal dimension. Thin-walled Rako 800 × 600
+The 800 × 600 figures are the weakest of the set — they are formula-derived, and the
+only vendor publishing internals for that footprint (Salesbridges, 770 × 570 mm)
+implies 8–9 % more capacity than the formula gives. Thin-walled Rako 800 × 600
 containers are marketed at ~134 L against the formula's 124 L, so treat the
 800 × 600 row as conservative.
 
@@ -115,6 +133,21 @@ curl -s "https://www.plasticboxshop.co.uk/collections/euro-stacking-containers/p
 nesting and stacking claims); `variants[].price` carries the price. Any Shopify
 storefront answers `/products.json` and `/collections.json` the same way — check for
 `sitemap.xml` naming `sitemap_products_*.xml` to identify one.
+
+**Lightspeed eCom storefronts do the same with `?format=json`**, which is how
+salesbridges.eu was captured. The tell is `cdn.webshopapp.com` in the page source.
+Both a category and a single product answer:
+
+```bash
+curl -s "https://www.salesbridges.eu/en/products/plastic-crates/?format=json&limit=100"
+curl -s "https://www.salesbridges.eu/en/eurobox-60x40x32-cm-open-handle-euro-container-clo.html?format=json"
+```
+
+The category payload has **no** `content` field, so the spec table — and with it the
+internal dimensions — only comes from the per-product fetch. Script:
+`scripts/capture_salesbridges.py` in the dataset repo. Useful by-product: their
+60 × 40 lid is listed as a €3.95 product option, a cleaner figure for the lid-cost
+note below than the Israeli ₪23.
 
 What did **not** work, so as not to repeat it:
 

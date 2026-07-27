@@ -109,6 +109,14 @@
   .family-head:first-child { margin-top: 4px; }
   .family-head h2 { font-size: 1.02rem; }
   .family-head .fam-sub { font-size: 0.82rem; color: var(--text-muted); }
+  /* Own line under the heading: these are search terms, not part of the label. */
+  .family-head .fam-aka {
+    flex-basis: 100%;
+    margin-top: -4px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    opacity: 0.8;
+  }
   /* ---- footprint accordions ---- */
   details.footprint {
     background: var(--surface-1);
@@ -569,16 +577,23 @@
 // Sources and the verification date are in docs/ of this repo.
 // ============================================================================
 
+// `aka` is for the reader who knows the product under another name — the trade has
+// no agreed vocabulary and half the terms are regional. Full list with provenance:
+// https://huggingface.co/datasets/danielrosehill/storage-container-dimensions
 const FAMILIES = {
   euro: {
     name: "Euro stacking containers",
     sub: "open top, straight walls, lid sold separately — stack but do not nest",
+    aka: "Eurobox · euro crate · Eurocontainer · stacking tote · straight-wall tote · " +
+         "industrial tote · KLC · “KLT box” (loosely) · Eurobehälter · bac gerbable",
     nestRatio: 0,      // fraction of its own height a nested empty box saves
     taper: false,
   },
   alc: {
     name: "Attached-lid containers (ALC)",
     sub: "hinged lid included, sloping walls — stack when full, nest ~75 % when empty",
+    aka: "attached top container (ATC) · attached-lid tote · distribution tote · " +
+         "hinged-lid crate · crocodile-lid box · “Hudson box” (US) · Klappdeckelbehälter",
     nestRatio: 0.75,
     taper: true,
   },
@@ -678,7 +693,8 @@ for (const g of GROUPS) {
   if (g.fam !== lastFam) {
     const head = document.createElement("div");
     head.className = "family-head";
-    head.innerHTML = `<h2>${FAMILIES[g.fam].name}</h2><span class="fam-sub">${FAMILIES[g.fam].sub}</span>`;
+    head.innerHTML = `<h2>${FAMILIES[g.fam].name}</h2><span class="fam-sub">${FAMILIES[g.fam].sub}</span>`
+      + `<span class="fam-aka">Also called: ${FAMILIES[g.fam].aka}</span>`;
     sectionsEl.appendChild(head);
     lastFam = g.fam;
   }

@@ -4,7 +4,17 @@
 
 A single-page calculator for two families of industrial storage container — **Euro
 stacking containers** (Euroboxes) and **attached-lid containers** (ALCs) — that
-answers both halves of a purchasing question:
+answers both halves of a purchasing question.
+
+The trade has no agreed vocabulary for either family, so the tool lists the aliases
+under each heading: euro crate, Eurocontainer, stacking tote, straight-wall tote,
+industrial tote, KLC, Eurobehälter, bac gerbable for the first; attached top
+container (ATC), distribution tote, hinged-lid crate, crocodile-lid box, "Hudson
+box" for the second. Which of those are evidenced by real listings and which two
+actively mislead is set out in the dataset's
+[naming guidance](https://huggingface.co/datasets/danielrosehill/storage-container-dimensions/blob/main/guidance/naming.md).
+
+It answers:
 
 - **How much will it hold, and how much space will it take?** Usable capacity,
   external volume, Euro pallet loads with per-layer diagrams, 20 ft container (TEU)
@@ -98,9 +108,13 @@ one known outlier. Catalogue capacities are typical and vary by manufacturer; ch
 the supplier's own internal dimensions before committing to a large order.
 
 The same reference data is published as a machine-readable dataset, extended with
-the VDA 4500 KLT sizes and standards-conformance fields:
+the VDA 4500 KLT sizes, standards-conformance fields, and 121 individual vendor
+listings from four markets:
 **[danielrosehill/storage-container-dimensions](https://huggingface.co/datasets/danielrosehill/storage-container-dimensions)**
-on Hugging Face (CC BY 4.0).
+on Hugging Face (CC BY 4.0). Every row there also carries `vendor_capacity_low_l`
+and `vendor_capacity_high_l` — the range of capacities implied by each vendor's own
+published internal dimensions, which on a 60 × 40 × 32 box spans 60 to 66 litres.
+This calculator uses the low end.
 
 ## 3D models
 
