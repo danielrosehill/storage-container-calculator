@@ -1,6 +1,6 @@
 # Industrial Storage Container Calculator
 
-[![Container size tiles grouped by family and footprint](screenshots/app.png)](https://danielrosehill.github.io/eurobox-calculator/)
+[![Container size tiles grouped by family and footprint](screenshots/app.png)](https://danielrosehill.github.io/storage-container-calculator/)
 
 A single-page calculator for two families of industrial storage container — **Euro
 stacking containers** (Euroboxes) and **attached-lid containers** (ALCs) — that
@@ -22,12 +22,12 @@ It answers:
 - **Which purchase is better value?** Price up two or more baskets and rank them on
   **volume price** — what one usable litre costs to buy.
 
-**Live:** https://danielrosehill.github.io/eurobox-calculator/ · also served at
+**Live:** https://danielrosehill.github.io/storage-container-calculator/ · also served at
 https://blog.danielrosehill.com/tools/eurobox-calculator/
 
 ## Volume price
 
-[![Purchase comparison ranking baskets by volume price](screenshots/comparison.png)](https://danielrosehill.github.io/eurobox-calculator/)
+[![Purchase comparison ranking baskets by volume price](screenshots/comparison.png)](https://danielrosehill.github.io/storage-container-calculator/)
 
 *Purchase price ÷ usable capacity*, quoted per usable litre with the same figure per
 m³ alongside. Lower is better.
@@ -67,7 +67,7 @@ break.
 
 ## What it computes
 
-[![Stat tiles, TEU utilisation meters, container breakdown, and pallet layer layout](screenshots/results.png)](https://danielrosehill.github.io/eurobox-calculator/)
+[![Stat tiles, TEU utilisation meters, container breakdown, and pallet layer layout](screenshots/results.png)](https://danielrosehill.github.io/storage-container-calculator/)
 
 - **Usable capacity** in litres, and its ratio to external volume ("space efficiency")
 - **External volume** in m³ — the space the boxes occupy when full
