@@ -123,7 +123,7 @@ This calculator uses the low end.
 ## 3D models
 
 The "3D models" section renders the GLBs from
-[storage-box-3d-models](https://github.com/danielrosehill/storage-box-3d-models) with
+[Modular-Storage-3D-Models](https://github.com/danielrosehill/Modular-Storage-3D-Models) with
 Google's `<model-viewer>`. Each card offers a GLB download and, for the container
 sizes, an "Add to calculation" button — it fills the matching catalogue tile when the
 calculator already lists that size and family, and a custom row when it does not.
